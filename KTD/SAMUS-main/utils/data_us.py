@@ -286,12 +286,16 @@ class ImageToImage2D(Dataset):
         self.dataset_path = dataset_path
         self.one_hot_mask = one_hot_mask
         self.split = split
-        id_list_file = os.path.join(dataset_path, 'MainPatient/{0}.txt'.format(split))
+        if  dataset_path.__contains__('baseline'):
+            id_list_file = os.path.join(dataset_path, '{0}.txt'.format(split))
+        else:
+            id_list_file = os.path.join(dataset_path, 'MainPatient/{0}.txt'.format(split))
+        
         self.ids = [id_.strip() for id_ in open(id_list_file)]
         self.prompt = prompt
         self.img_size = img_size
         self.class_id = class_id
-        self.class_dict_file = os.path.join(dataset_path, 'MainPatient/class.json')
+        self.class_dict_file = os.path.join(dataset_path, 'class.json')
         with open(self.class_dict_file, 'r') as load_f:
             self.class_dict = json.load(load_f)
         if joint_transform:
@@ -305,8 +309,10 @@ class ImageToImage2D(Dataset):
 
     def __getitem__(self, i):
         id_ = self.ids[i]
+        # print(self.dataset_path)
         if "test" in self.split:
             if 'KTD' in self.dataset_path:
+                #1/KTD/212/1-7
                 class_id0,sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2], 2-int(id_.split('/')[3].split('-')[0])  # 用2减的原因是 1为异常 2为正常
             else:
                 sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], int(id_.split('/')[2])
@@ -315,6 +321,11 @@ class ImageToImage2D(Dataset):
         else:
             if 'KTD' in self.dataset_path:
                 class_id0, sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2], 2-int(id_.split('/')[3].split('-')[0])
+            #benign_178_0.png
+            elif 'baseline' in self.dataset_path:
+                 sub_path, filename, class_label = '',id_, id_.split('_')[2].replace('.png', '')
+                 class_id0=class_label
+            
             else:
                 class_id0, sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2], int(id_.split('/')[3])
         if 'KTD' in self.dataset_path:
@@ -322,13 +333,20 @@ class ImageToImage2D(Dataset):
             label_path = os.path.join(self.dataset_path, 'label')
             image = cv2.imread(os.path.join(img_path, filename +'_'+id_.split('/')[3]+ '.png'), 0)
             mask = cv2.imread(os.path.join(label_path, filename +'_'+id_.split('/')[3]+'.png'), 0)
+        elif 'baseline' in self.dataset_path:
+            img_path = os.path.join(self.dataset_path, 'imgs')
+            label_path = os.path.join(self.dataset_path, 'masks')
+            image = cv2.imread(os.path.join(img_path, filename), 0)
+            mask = cv2.imread(os.path.join(label_path, filename), 0)  
         else:
             img_path = os.path.join(os.path.join(self.dataset_path, sub_path), 'img')
             label_path = os.path.join(os.path.join(self.dataset_path, sub_path), 'label')
             image = cv2.imread(os.path.join(img_path, filename + '.jpg'), 0)
             mask = cv2.imread(os.path.join(label_path, filename + '.jpg'), 0)
-
-        classes = self.class_dict[sub_path]
+        if 'baseline' in self.dataset_path:
+            classes = 2 
+        else :    
+            classes = self.class_dict[sub_path]
         if classes == 2:
             #mask[mask >1] = 1
             if 'KTD' in self.dataset_path:
@@ -375,6 +393,7 @@ class ImageToImage2D(Dataset):
 
         low_mask = low_mask.unsqueeze(0)
         mask = mask.unsqueeze(0)
+        # print(class_label)
 
         if 'KTD' in self.dataset_path:
             return {
@@ -385,6 +404,18 @@ class ImageToImage2D(Dataset):
                 'bbox': bbox,
                 'low_mask': low_mask,
                 'image_name': filename +'_'+id_.split('/')[3] + '.png',
+                'class_id': class_id,
+                'class_label': class_label,
+            }
+        elif 'baseline' in self.dataset_path:
+           return {
+                'image': image,
+                'label': mask,
+                'p_label': point_labels,
+                'pt': pt,
+                'bbox': bbox,
+                'low_mask': low_mask,
+                'image_name': filename,  # 去掉 .png
                 'class_id': class_id,
                 'class_label': class_label,
             }

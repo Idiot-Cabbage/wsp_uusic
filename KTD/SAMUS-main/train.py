@@ -36,9 +36,9 @@ def main():
 
     parser = argparse.ArgumentParser(description='Networks')
     parser.add_argument('--modelname', default='SAMUS', type=str, help='type of model, e.g., SAM, SAMFull, MedSAM, MSA, SAMed, SAMUS...')
-    parser.add_argument('-encoder_input_size', type=int, default=256, help='the image size of the encoder input, 1024 in SAM and MSA, 512 in SAMed, 256 in SAMUS')
+    parser.add_argument('-encoder_input_size', type=int, default=224, help='the image size of the encoder input, 1024 in SAM and MSA, 512 in SAMed, 256 in SAMUS')
     parser.add_argument('-low_image_size', type=int, default=128, help='the image embedding size, 256 in SAM and MSA, 128 in SAMed and SAMUS')
-    parser.add_argument('--task', default='KTD', help='task or dataset name')
+    parser.add_argument('--task', default='UUSIC', help='task or dataset name')
     parser.add_argument('--vit_name', type=str, default='vit_b', help='select the vit model for the image encoder of sam')
     parser.add_argument('--sam_ckpt', type=str, default='checkpoints/sam_vit_b_01ec64.pth', help='Pretrained checkpoint of SAM')
     parser.add_argument('--batch_size', type=int, default=8, help='batch_size per gpu') # SAMed is 12 bs with 2n_gpu and lr is 0.005
@@ -125,9 +125,10 @@ def main():
         for batch_idx, (datapack) in enumerate(trainloader):
             imgs = datapack['image'].to(dtype = torch.float32, device=opt.device)
             masks = datapack['low_mask'].to(dtype = torch.float32, device=opt.device)
-            class_labels = torch.as_tensor(datapack['class_label'],dtype = torch.float32, device=opt.device)
-            bbox = torch.as_tensor(datapack['bbox'], dtype=torch.float32, device=opt.device)
-            pt = get_click_prompt(datapack, opt)
+            
+            # class_labels = torch.as_tensor(datapack['class_label'],dtype = torch.float32, device=opt.device)
+            # bbox = torch.as_tensor(datapack['bbox'], dtype=torch.float32, device=opt.device)
+            # pt = get_click_prompt(datapack, opt)
             # print(imgs.shape) # 8 1 256 256
             # -------------------------------------------------------- forward --------------------------------------------------------
             pred = model(imgs) # pred = model(imgs, pt, bbox)

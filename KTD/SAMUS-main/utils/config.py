@@ -82,7 +82,7 @@ class Config_KTD:
     save_path = "./checkpoints/KTD/"
     result_path = "./result/KTD/"
     tensorboard_path = "./tensorboard/KTD/"
-    load_path = save_path + "/SAMUS_01111456_352_0.8360216348510668.pth" # SAMUS_12291902_47_0.8595338325001363.pth   SAMUS_01081717_8_0.42477967570244357.pth
+    load_path = save_path + "/SAMUS_07121649_13_0.8649140261499766.pth" # SAMUS_12291902_47_0.8595338325001363.pth   SAMUS_01081717_8_0.42477967570244357.pth
     load_classifier_path = save_path + "/Resnet18_01032018_59_0.7805483249970666.pth"
     save_path_code = "_"
 
@@ -216,6 +216,49 @@ class Config_OurDataset:
     mode = "train"
     visual = False
     modelname = "SAM"
+class Config_UUSIC:
+    data_path = "../../baseline/data/segmentation/BUS-BRA/"
+    data_subpath = "./dataset/SAMUS/KTD/"
+    save_path = "./checkpoints/UUSIC/"
+    result_path = "./result/UUSIC/"
+    tensorboard_path = "./tensorboard/UUSIC/"
+    load_path = save_path + "SAMUS_07121649_13_0.8649140261499766.pth" # SAMUS_12291902_47_0.8595338325001363.pth   SAMUS_01081717_8_0.42477967570244357.pth
+    load_classifier_path = save_path + "/Resnet18_01032018_59_0.7805483249970666.pth"
+    save_path_code = "_"
+
+    workers = 0                  # number of data loading workers (default: 8)
+    epochs = 100                 # number of total epochs to run (default: 400)
+    batch_size = 4               # batch size (default: 4)
+    learning_rate = 1e-4         # initial learning rate (default: 0.001)
+    momentum = 0.9               # momentum
+    classes = 2                  # the number of classes (background + foreground)
+    img_size = 224               # the input size of model
+    train_split = "train"  # the file name of training set
+    val_split = "val"     # the file name of testing set
+    test_split = "test"     # the file name of testing set
+    crop = None                  # the cropped image size
+    eval_freq = 1                # the frequency of evaluate the model
+    save_freq = 2000               # the frequency of saving the model
+    device = "cuda"              # training device, cpu or cuda
+    cuda = "on"                  # switch on/off cuda option (default: off)
+    gray = "yes"                 # the type of input image
+    img_channel = 1              # the channel of input image
+    eval_mode = "mask_slice"        # the mode when evaluate the model, slice level or patient level
+    pre_trained = False
+    mode = "train"
+    visual = False
+    modelname = "SAMUS"
+
+    # 分类参数
+    segmentation_data_path = ""
+
+    classifier_epochs= 200
+    classifier_batch_size = 128
+    classifier_learning_rate = 1e-4  # initial learning rate (default: 0.001)
+    classifier_momentum = 0.9  # momentum
+    classifier_classes = 2  # the number of classes (normal + abnormal)
+    classifier_name = "Resnet18"  # (Vit,Resnet18)
+    classifier_size = 256 # (Vit:224,Resnet18 256)    
 # ==================================================================================================
 def get_config(task="US30K"):
     if task == "US30K":
@@ -230,5 +273,7 @@ def get_config(task="US30K"):
         return Config_CAMUS()
     elif task == "OurDataset":
         return Config_OurDataset()
+    elif task == "UUSIC":
+        return Config_UUSIC()
     else:
         assert("We do not have the related dataset, please choose another task.")
