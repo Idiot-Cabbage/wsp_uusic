@@ -5,3 +5,16 @@ baseline/networks/__pycache__/
 baseline/pretrained_ckpt/swin_tiny_patch4_window7_224.pth
 baseline/datasets/__pycache__/dataset.cpython-310.pyc
 baseline/datasets/__pycache__/
+KTD/SAMUS-main/dataset/
+KTD/SAMUS-main/example_of_required_dataset_format/Ourdatasets/IMG/2.JPG
+KTD/SAMUS-main/result/
+KTD/SAMUS-main/models/segment_anything/modeling/__pycache__
+KTD/SAMUS-main/models/segment_anything_samus/__pycache__/
+KTD/SAMUS-main/utils/__pycache__
+KTD/SAMUS-main/models/segment_anything/__pycache__/
+KTD/SAMUS-main/checkpoints/
+KTD/SAMUS-main/models/segment_anything/utils/__pycache__/
+KTD/SAMUS-main/tensorboard/
+KTD/SAMUS-main/models/segment_anything_samus/modeling/__pycache__/
+KTD/SAMUS-main/models/segment_anything_samus/utils/__pycache__/
+KTD/SAMUS-main/utils/loss_functions/__pycache__/
