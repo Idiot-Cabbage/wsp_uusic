@@ -59,6 +59,51 @@ class TwoWayTransformer(nn.Module):
         )
         self.norm_final_attn = nn.LayerNorm(embedding_dim)
 
+    # def forward(
+    #     self,
+    #     image_embedding: Tensor, # b c h w
+    #     image_pe: Tensor,        # b c h w
+    #     point_embedding: Tensor, # b nt c
+    # ) -> Tuple[Tensor, Tensor]:
+    #     """
+    #     Args:
+    #       image_embedding (torch.Tensor): image to attend to. Should be shape
+    #         B x embedding_dim x h x w for any h and w.
+    #       image_pe (torch.Tensor): the positional encoding to add to the image. Must
+    #         have the same shape as image_embedding.
+    #       point_embedding (torch.Tensor): the embedding to add to the query points.
+    #         Must have shape B x N_points x embedding_dim for any N_points.
+
+    #     Returns:
+    #       torch.Tensor: the processed point_embedding
+    #       torch.Tensor: the processed image_embedding
+    #     """
+    #     # BxCxHxW -> BxHWxC == B x N_image_tokens x C
+    #     bs, c, h, w = image_embedding.shape
+    #     image_embedding = image_embedding.flatten(2).permute(0, 2, 1)  # b N c
+    #     image_pe = image_pe.flatten(2).permute(0, 2, 1) # b 256 32 32 -> b N d. image positional embedding to further enhance the position
+
+    #     # Prepare queries
+    #     queries = point_embedding
+    #     keys = image_embedding
+
+    #     # Apply transformer blocks and final layernorm
+    #     for layer in self.layers:
+    #         queries, keys = layer(
+    #             queries=queries,
+    #             keys=keys,
+    #             query_pe=point_embedding,
+    #             key_pe=image_pe,
+    #         )
+
+    #     # Apply the final attention layer from the points to the image
+    #     q = queries + point_embedding # (b nt c)
+    #     k = keys + image_pe  # (b N c)
+    #     attn_out = self.final_attn_token_to_image(q=q, k=k, v=keys) # (b nt c)
+    #     queries = queries + attn_out
+    #     queries = self.norm_final_attn(queries)
+
+    #     return queries, keys
     def forward(
         self,
         image_embedding: Tensor, # b c h w
@@ -67,26 +112,41 @@ class TwoWayTransformer(nn.Module):
     ) -> Tuple[Tensor, Tensor]:
         """
         Args:
-          image_embedding (torch.Tensor): image to attend to. Should be shape
+        image_embedding (torch.Tensor): image to attend to. Should be shape
             B x embedding_dim x h x w for any h and w.
-          image_pe (torch.Tensor): the positional encoding to add to the image. Must
+        image_pe (torch.Tensor): the positional encoding to add to the image. Must
             have the same shape as image_embedding.
-          point_embedding (torch.Tensor): the embedding to add to the query points.
+        point_embedding (torch.Tensor): the embedding to add to the query points.
             Must have shape B x N_points x embedding_dim for any N_points.
 
         Returns:
-          torch.Tensor: the processed point_embedding
-          torch.Tensor: the processed image_embedding
+        torch.Tensor: the processed point_embedding
+        torch.Tensor: the processed image_embedding
         """
+        # 保存原始空间尺寸
+        bs, c, orig_h, orig_w = image_embedding.shape
+        _, _, pe_h, pe_w = image_pe.shape
+        
+        # 调整图像嵌入大小以匹配位置编码
+        if orig_h != pe_h or orig_w != pe_w:
+            # print(f"调整transformer图像嵌入尺寸: {orig_h}x{orig_w} -> {pe_h}x{pe_w}")
+            # 调整图像嵌入大小以匹配位置编码
+            image_embedding = torch.nn.functional.interpolate(
+                image_embedding,
+                size=(pe_h, pe_w),
+                mode='bilinear',
+                align_corners=False
+            )
+        
         # BxCxHxW -> BxHWxC == B x N_image_tokens x C
         bs, c, h, w = image_embedding.shape
         image_embedding = image_embedding.flatten(2).permute(0, 2, 1)  # b N c
-        image_pe = image_pe.flatten(2).permute(0, 2, 1) # b 256 32 32 -> b N d. image positional embedding to further enhance the position
-
+        image_pe = image_pe.flatten(2).permute(0, 2, 1) # b N d
+        
         # Prepare queries
         queries = point_embedding
         keys = image_embedding
-
+        
         # Apply transformer blocks and final layernorm
         for layer in self.layers:
             queries, keys = layer(
@@ -95,14 +155,29 @@ class TwoWayTransformer(nn.Module):
                 query_pe=point_embedding,
                 key_pe=image_pe,
             )
-
+        
         # Apply the final attention layer from the points to the image
         q = queries + point_embedding # (b nt c)
         k = keys + image_pe  # (b N c)
         attn_out = self.final_attn_token_to_image(q=q, k=k, v=keys) # (b nt c)
         queries = queries + attn_out
         queries = self.norm_final_attn(queries)
-
+        
+        # 将 keys 调整回原始空间尺寸
+        if orig_h != pe_h or orig_w != pe_w:
+            # print(f"将transformer输出调整回原始尺寸: {pe_h}x{pe_w} -> {orig_h}x{orig_w}")
+            # 重塑为空间形式
+            keys_spatial = keys.permute(0, 2, 1).reshape(bs, c, pe_h, pe_w)
+            # 调整回原始尺寸
+            keys_spatial = torch.nn.functional.interpolate(
+                keys_spatial,
+                size=(orig_h, orig_w),
+                mode='bilinear',
+                align_corners=False
+            )
+            # 重塑回序列形式
+            keys = keys_spatial.flatten(2).permute(0, 2, 1)
+        
         return queries, keys
 
 

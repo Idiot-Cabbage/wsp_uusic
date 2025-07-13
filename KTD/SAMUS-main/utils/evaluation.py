@@ -130,7 +130,27 @@ def eval_mask_slice2(valloader, model, criterion, opt, args,epoch):
             pred_i = np.zeros((1, h, w))
             pred_i[seg[j:j+1, :, :] == 1] = 255
             gt_i = np.zeros((1, h, w))
-            gt_i[gt[j:j+1, :, :] == 1] = 255
+            # gt_i[gt[j:j+1, :, :] == 1] = 255
+            # 添加调试信息
+            print(f"gt.shape: {gt.shape}, gt_i.shape: {gt_i.shape}")
+            print(f"j: {j}")
+
+            # 安全地进行布尔索引
+            # 创建掩码
+            mask = gt[j:j+1, :, :] == 1
+            print(f"mask.shape: {mask.shape}")
+            
+            # 调整掩码大小以匹配 gt_i
+            if mask.shape[1:] != gt_i.shape[1:]:
+                from scipy.ndimage import zoom
+                # 计算缩放比例
+                zoom_factors = (1, gt_i.shape[1]/mask.shape[1], gt_i.shape[2]/mask.shape[2])
+                print(f"调整掩码尺寸: {mask.shape} -> {gt_i.shape}, 缩放因子: {zoom_factors}")
+                # 使用最近邻插值调整掩码大小（保持二值特性）
+                mask = zoom(mask.astype(np.uint8), zoom_factors, order=0).astype(bool)
+            
+            # 应用调整后的掩码
+            gt_i[mask] = 255
             dice_i = metrics.dice_coefficient(pred_i, gt_i)
             #print("name:", name[j], "coord:", coords_torch[j], "dice:", dice_i)
             dices[eval_number+j, 1] += dice_i

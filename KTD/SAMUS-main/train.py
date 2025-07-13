@@ -109,10 +109,22 @@ def main():
         b_lr = args.base_lr
         optimizer = optim.Adam(model.parameters(), lr=args.base_lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False)
    
+    # 添加以下代码:
+    
     criterion = get_criterion(modelname=args.modelname, opt=opt)
 
     pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print("Total_params: {}".format(pytorch_total_params))
+    # 跳过训练直接评估
+    skip_training = False  # 临时设置为 True 跳过训练
+    if skip_training:
+        print("=== 跳过训练，直接进行评估 ===")
+        model.eval()
+        with torch.no_grad():
+            dices, mean_dice, _, val_losses = get_eval(valloader, model, criterion=criterion, opt=opt, args=args, epoch=0)
+        print('评估结果: val loss:{:.4f}, val dice:{:.4f}'.format(val_losses, mean_dice))
+        import sys
+        sys.exit(0)  # 评估后直接退出
 
     #  ========================================================================= begin to train the model ============================================================================
     iter_num = 0

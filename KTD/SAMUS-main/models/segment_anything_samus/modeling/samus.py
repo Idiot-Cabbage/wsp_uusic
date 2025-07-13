@@ -165,7 +165,7 @@ class Samus(nn.Module):
                     dense_prompt_embeddings=de,
                     multimask_output=False,
                     )
-        masks = F.interpolate(low_res_masks, (256, 256), mode="bilinear", align_corners=False)
+        masks = F.interpolate(low_res_masks, (224, 224), mode="bilinear", align_corners=False)
         outputs = {"low_res_logits": low_res_masks, "masks": masks}
         return outputs
         # else:

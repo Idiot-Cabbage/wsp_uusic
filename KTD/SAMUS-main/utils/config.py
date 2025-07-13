@@ -218,7 +218,7 @@ class Config_OurDataset:
     modelname = "SAM"
 class Config_UUSIC:
     data_path = "../../baseline/data/segmentation/BUS-BRA/"
-    data_subpath = "./dataset/SAMUS/KTD/"
+    data_subpath = "../../baseline/data/segmentation/BUS-BRA/"
     save_path = "./checkpoints/UUSIC/"
     result_path = "./result/UUSIC/"
     tensorboard_path = "./tensorboard/UUSIC/"

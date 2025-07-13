@@ -119,8 +119,8 @@ def visual_segmentation_sets_with_pt(seg, image_filename, opt, pt):
 
 def visual_compare(image_filename,pred,gt,opt,epoch):
     # 原始图片
-    img_ori = cv2.imread(os.path.join(opt.data_subpath + '/img', image_filename))
-    img_ori = cv2.resize(img_ori, dsize=(256, 256))
+    img_ori = cv2.imread(os.path.join(opt.data_subpath + 'imgs', image_filename))
+    img_ori = cv2.resize(img_ori, dsize=(224, 224))
     gt_pic = gt[0,:,:]
     pred_pic = pred[0,:,:]
 

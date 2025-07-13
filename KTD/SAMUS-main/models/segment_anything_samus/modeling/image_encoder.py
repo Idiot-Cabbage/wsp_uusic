@@ -111,25 +111,81 @@ class ImageEncoderViT(nn.Module):
         )
         self.input_Adapter = Adapter(embed_dim)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if x.size()[1] == 1:
-            x = x.repeat(1,3,1,1) # b c h w
-        cnnx = self.cnn_embed(x) # b h w c
-        x = self.patch_embed(x) # b h w c
-        x = self.input_Adapter(x)
+    # def forward(self, x: torch.Tensor) -> torch.Tensor:
+    #     if x.size()[1] == 1:
+    #         x = x.repeat(1,3,1,1) # b c h w
+    #     cnnx = self.cnn_embed(x) # b h w c
+    #     x = self.patch_embed(x) # b h w c
+    #     x = self.input_Adapter(x)
        
-        if self.pos_embed is not None:
-            pos_embed = self.post_pos_embed(self.pos_embed) # 1 h w c
-            x = x + pos_embed.repeat(x.shape[0], 1, 1, 1)
+    #     if self.pos_embed is not None:
+    #         pos_embed = self.post_pos_embed(self.pos_embed) # 1 h w c
+    #         x = x + pos_embed.repeat(x.shape[0], 1, 1, 1)
         
-        for blk in self.blocks:
-            x, cnnx = blk(x, cnnx) # b h w c
+    #     for blk in self.blocks:
+    #         x, cnnx = blk(x, cnnx) # b h w c
         
-        x = x + 0.5*cnnx
+    #     x = x + 0.5*cnnx
 
+    #     x = self.neck(x.permute(0, 3, 1, 2))
+        
+    #     return x
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """原始实现，支持 cnnx 参数，并修复空间尺寸不匹配问题"""
+        B = x.shape[0]
+        
+        # 处理单通道输入
+        if x.size()[1] == 1:
+            x = x.repeat(1, 3, 1, 1)  # b c h w
+        
+        # 生成 cnnx
+        cnnx = self.cnn_embed(x)  # b h w c
+        x = self.patch_embed(x)  # b h w c
+        x = self.input_Adapter(x)
+        
+        # 处理位置编码
+        if self.pos_embed is not None:
+            # 动态调整位置编码尺寸以匹配特征图
+            if x.shape[1:3] != self.pos_embed.shape[1:3]:
+                # 使用 post_pos_embed 处理
+                pos_embed = self.post_pos_embed(self.pos_embed)  # 1 h w c
+                
+                # 检查 post_pos_embed 处理后的尺寸是否匹配
+                if pos_embed.shape[1:3] != x.shape[1:3]:
+                    # print(f"调整位置编码尺寸: {pos_embed.shape[1:3]} -> {x.shape[1:3]}")
+                    # 动态调整位置编码尺寸
+                    pos_embed = F.interpolate(
+                        pos_embed.permute(0, 3, 1, 2),  # [1, C, H, W]
+                        size=(x.shape[1], x.shape[2]),
+                        mode='bilinear',
+                        align_corners=False
+                    ).permute(0, 2, 3, 1)  # [1, H, W, C]
+                
+                x = x + pos_embed.repeat(x.shape[0], 1, 1, 1)
+            else:
+                # 直接使用
+                x = x + self.pos_embed.repeat(x.shape[0], 1, 1, 1)
+        
+        # 传递两个参数给 blocks
+        for blk in self.blocks:
+            x, cnnx = blk(x, cnnx)  # b h w c
+        
+        # 添加 cnnx 并使用 neck - 修复尺寸不匹配问题
+        if x.shape[1:3] != cnnx.shape[1:3]:
+            # print(f"调整cnnx尺寸: {cnnx.shape[1:3]} -> {x.shape[1:3]}")
+            # 将 cnnx 调整为与 x 相同的空间尺寸
+            cnnx = F.interpolate(
+                cnnx.permute(0, 3, 1, 2),  # [B, C, H, W]
+                size=(x.shape[1], x.shape[2]),
+                mode='bilinear',
+                align_corners=False
+            ).permute(0, 2, 3, 1)  # [B, H, W, C]
+        
+        # 现在可以安全地相加
+        x = x + 0.5 * cnnx
         x = self.neck(x.permute(0, 3, 1, 2))
         
-        return x
+        return x  
 
 
 class ParaBlock(nn.Module):
@@ -321,22 +377,92 @@ class qkvAttention(nn.Module):
             self.rel_pos_h = nn.Parameter(torch.zeros(2 * input_size[0] - 1, head_dim))
             self.rel_pos_w = nn.Parameter(torch.zeros(2 * input_size[1] - 1, head_dim))
 
+    # def forward(self, q: torch.Tensor, k: torch.Tensor, v:torch.Tensor) -> torch.Tensor:
+    #     B, H, W, _ = q.shape
+    #     q = self.q(q).reshape(B, H * W, self.num_heads, -1).permute(0, 2, 1, 3).reshape(B*self.num_heads, H*W, -1)
+    #     k = self.k(k).reshape(B, H * W, self.num_heads, -1).permute(0, 2, 1, 3).reshape(B*self.num_heads, H*W, -1)
+    #     v = self.v(v).reshape(B, H * W, self.num_heads, -1).permute(0, 2, 1, 3).reshape(B*self.num_heads, H*W, -1)
+
+    #     attn = (q * self.scale) @ k.transpose(-2, -1)
+
+    #     if self.use_rel_pos:
+    #         attn = add_decomposed_rel_pos(attn, q, self.rel_pos_h, self.rel_pos_w, (H, W), (H, W))
+
+    #     attn = attn.softmax(dim=-1)
+    #     x = (attn @ v).view(B, self.num_heads, H, W, -1).permute(0, 2, 3, 1, 4).reshape(B, H, W, -1)
+    #     x = self.proj(x)
+
+    #     return x
     def forward(self, q: torch.Tensor, k: torch.Tensor, v:torch.Tensor) -> torch.Tensor:
-        B, H, W, _ = q.shape
-        q = self.q(q).reshape(B, H * W, self.num_heads, -1).permute(0, 2, 1, 3).reshape(B*self.num_heads, H*W, -1)
-        k = self.k(k).reshape(B, H * W, self.num_heads, -1).permute(0, 2, 1, 3).reshape(B*self.num_heads, H*W, -1)
-        v = self.v(v).reshape(B, H * W, self.num_heads, -1).permute(0, 2, 1, 3).reshape(B*self.num_heads, H*W, -1)
-
-        attn = (q * self.scale) @ k.transpose(-2, -1)
-
+        # 获取各张量的实际尺寸
+        B, Hq, Wq, C = q.shape
+        _, Hk, Wk, _ = k.shape
+        _, Hv, Wv, _ = v.shape
+        
+        # 应用线性变换
+        q_proj = self.q(q)  # 线性投影
+        k_proj = self.k(k)
+        v_proj = self.v(v)
+        
+        # 获取实际特征维度
+        C_proj = q_proj.size(-1)
+        head_dim = C_proj // self.num_heads
+        
+        # 调整k和v的空间尺寸以匹配q
+        if Hk != Hq or Wk != Wq:
+            k_proj = F.interpolate(
+                k_proj.permute(0, 3, 1, 2),  # [B, C, H, W]
+                size=(Hq, Wq),
+                mode='bilinear',
+                align_corners=False
+            ).permute(0, 2, 3, 1)  # [B, H, W, C]
+        
+        if Hv != Hq or Wv != Wq:
+            v_proj = F.interpolate(
+                v_proj.permute(0, 3, 1, 2),  # [B, C, H, W]
+                size=(Hq, Wq),
+                mode='bilinear',
+                align_corners=False
+            ).permute(0, 2, 3, 1)  # [B, H, W, C]
+        
+        # 所有张量现在有相同的空间尺寸，可以安全地处理
+        hw = Hq * Wq
+        
+        # 展平张量
+        q_flat = q_proj.reshape(B * hw, C_proj)
+        k_flat = k_proj.reshape(B * hw, C_proj)
+        v_flat = v_proj.reshape(B * hw, C_proj)
+        
+        # 重塑为多头注意力格式
+        q_4d = q_flat.reshape(B, hw, self.num_heads, head_dim)
+        k_4d = k_flat.reshape(B, hw, self.num_heads, head_dim)
+        v_4d = v_flat.reshape(B, hw, self.num_heads, head_dim)
+        
+        # 轴交换
+        q_perm = q_4d.permute(0, 2, 1, 3)
+        k_perm = k_4d.permute(0, 2, 1, 3)
+        v_perm = v_4d.permute(0, 2, 1, 3)
+        
+        # 重塑为注意力计算格式
+        q_attn = q_perm.reshape(B * self.num_heads, hw, head_dim)
+        k_attn = k_perm.reshape(B * self.num_heads, hw, head_dim)
+        v_attn = v_perm.reshape(B * self.num_heads, hw, head_dim)
+        
+        # 计算注意力
+        attn = (q_attn * self.scale) @ k_attn.transpose(-2, -1)
+        
         if self.use_rel_pos:
-            attn = add_decomposed_rel_pos(attn, q, self.rel_pos_h, self.rel_pos_w, (H, W), (H, W))
-
+            attn = add_decomposed_rel_pos(attn, q_attn, self.rel_pos_h, self.rel_pos_w, (Hq, Wq), (Hq, Wq))
+        
         attn = attn.softmax(dim=-1)
-        x = (attn @ v).view(B, self.num_heads, H, W, -1).permute(0, 2, 3, 1, 4).reshape(B, H, W, -1)
-        x = self.proj(x)
-
-        return x
+        
+        # 应用注意力并重塑
+        out_attn = attn @ v_attn
+        out = out_attn.reshape(B, self.num_heads, Hq, Wq, head_dim)
+        out = out.permute(0, 2, 3, 1, 4).reshape(B, Hq, Wq, self.num_heads * head_dim)
+        out = self.proj(out)
+        
+        return out
 
 
 def window_partition(x: torch.Tensor, window_size: int) -> Tuple[torch.Tensor, Tuple[int, int]]:
@@ -663,7 +789,17 @@ class PatchEmbed0(nn.Module):
             in_chans, embed_dim, kernel_size=16, stride=(8, 8), padding=padding
         )
 
+    # def forward(self, x: torch.Tensor) -> torch.Tensor:
+    #     x = F.interpolate(x, (256+8, 256+8), mode="bilinear", align_corners=False)
+    #     x = self.proj(x)
+    #     # B C H W -> B H W C
+    #     x = x.permute(0, 2, 3, 1)
+    #     return x
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # 处理单通道输入，将其转换为3通道
+        if x.size(1) == 1:
+            x = x.repeat(1, 3, 1, 1)  # 复制通道以创建 RGB 图像
+            
         x = F.interpolate(x, (256+8, 256+8), mode="bilinear", align_corners=False)
         x = self.proj(x)
         # B C H W -> B H W C
