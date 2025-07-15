@@ -217,12 +217,12 @@ class Config_OurDataset:
     visual = False
     modelname = "SAM"
 class Config_UUSIC:
-    data_path = "../../baseline/data/segmentation/BUS-BRA/"
-    data_subpath = "../../baseline/data/segmentation/BUS-BRA/"
+    data_path = "baseline/data/segmentation/BUS-BRA/"
+    data_subpath = "baseline/data/segmentation/BUS-BRA/"
     save_path = "./checkpoints/UUSIC/"
     result_path = "./result/UUSIC/"
     tensorboard_path = "./tensorboard/UUSIC/"
-    load_path = save_path + "SAMUS_07121649_13_0.8649140261499766.pth" # SAMUS_12291902_47_0.8595338325001363.pth   SAMUS_01081717_8_0.42477967570244357.pth
+    load_path = save_path + "SAMUS_07150917_85_0.8875865288946788.pth" # SAMUS_12291902_47_0.8595338325001363.pth   SAMUS_01081717_8_0.42477967570244357.pth
     load_classifier_path = save_path + "/Resnet18_01032018_59_0.7805483249970666.pth"
     save_path_code = "_"
 

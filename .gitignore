@@ -18,3 +18,8 @@ KTD/SAMUS-main/tensorboard/
 KTD/SAMUS-main/models/segment_anything_samus/modeling/__pycache__/
 KTD/SAMUS-main/models/segment_anything_samus/utils/__pycache__/
 KTD/SAMUS-main/utils/loss_functions/__pycache__/
+dataset_visualization/
+tensorboard/
+result/UUSIC/
+checkpoints/
+KTD/SAMUS-main/models/__pycache__

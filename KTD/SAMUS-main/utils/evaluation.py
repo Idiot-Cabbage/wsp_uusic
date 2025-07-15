@@ -104,10 +104,10 @@ def eval_mask_slice2(valloader, model, criterion, opt, args,epoch):
         imgs = Variable(datapack['image'].to(dtype = torch.float32, device=opt.device))
         masks = Variable(datapack['low_mask'].to(dtype = torch.float32, device=opt.device))
         label = Variable(datapack['label'].to(dtype = torch.float32, device=opt.device))
-        class_id = datapack['class_id']
+        # class_id = datapack['class_id']
         image_filename = datapack['image_name']
         print('batch_idx [{}/{}]'.format(batch_idx,len(valloader)))
-        pt = get_click_prompt(datapack, opt)
+        # pt =  datapack['pt']# get_click_prompt(datapack, opt)
         with torch.no_grad():
             start_time = time.time()
             # pred = model(imgs, pt)
@@ -132,13 +132,13 @@ def eval_mask_slice2(valloader, model, criterion, opt, args,epoch):
             gt_i = np.zeros((1, h, w))
             # gt_i[gt[j:j+1, :, :] == 1] = 255
             # 添加调试信息
-            print(f"gt.shape: {gt.shape}, gt_i.shape: {gt_i.shape}")
-            print(f"j: {j}")
+            # print(f"gt.shape: {gt.shape}, gt_i.shape: {gt_i.shape}")
+            # print(f"j: {j}")
 
             # 安全地进行布尔索引
             # 创建掩码
             mask = gt[j:j+1, :, :] == 1
-            print(f"mask.shape: {mask.shape}")
+            # print(f"mask.shape: {mask.shape}")
             
             # 调整掩码大小以匹配 gt_i
             if mask.shape[1:] != gt_i.shape[1:]:
@@ -164,7 +164,7 @@ def eval_mask_slice2(valloader, model, criterion, opt, args,epoch):
             visual_compare(image_filename[j],pred_i,gt_i,opt,epoch)
             del pred_i, gt_i
             if opt.visual:
-                visual_segmentation_sets_with_pt(seg[j:j+1, :, :], image_filename[j], opt, pt[0][j, :, :])
+                visual_segmentation_sets(seg[j:j+1, :, :], image_filename[j], opt)
         eval_number = eval_number + b
     dices = dices[:eval_number, :] 
     hds = hds[:eval_number, :] 
@@ -383,7 +383,7 @@ def eval_patient(valloader, model, criterion, opt, args):
         image_filename = datapack['image_name']
         class_id = datapack['class_id']
 
-        pt = get_click_prompt(datapack, opt)
+        pt =  datapack['pt']
         bbox = torch.as_tensor(datapack['bbox'], dtype=torch.float32, device=opt.device)
 
         with torch.no_grad():

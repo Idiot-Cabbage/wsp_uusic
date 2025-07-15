@@ -44,11 +44,11 @@ def visual_segmentation(seg, image_filename, opt):
 
 
 def visual_segmentation_sets(seg, image_filename, opt):
-    img_path = os.path.join(opt.data_subpath + '/img', image_filename)
-    img_ori = cv2.imread(os.path.join(opt.data_subpath + '/img', image_filename))
-    img_ori0 = cv2.imread(os.path.join(opt.data_subpath + '/img', image_filename))
-    img_ori = cv2.resize(img_ori, dsize=(256, 256))
-    img_ori0 = cv2.resize(img_ori0, dsize=(256, 256))
+    img_path = os.path.join(opt.data_subpath + 'imgs', image_filename)
+    img_ori = cv2.imread(os.path.join(opt.data_subpath + 'imgs', image_filename))
+    img_ori0 = cv2.imread(os.path.join(opt.data_subpath + 'imgs', image_filename))
+    img_ori = cv2.resize(img_ori, dsize=(224, 224))
+    img_ori0 = cv2.resize(img_ori0, dsize=(224, 224))
     overlay = img_ori * 0
     img_r = img_ori[:, :, 0]
     img_g = img_ori[:, :, 1]
@@ -123,10 +123,19 @@ def visual_compare(image_filename,pred,gt,opt,epoch):
     img_ori = cv2.resize(img_ori, dsize=(224, 224))
     gt_pic = gt[0,:,:]
     pred_pic = pred[0,:,:]
+    
+    # 打印调试信息
+    # print(f"GT掩码值范围: {gt_pic.min():.3f} 到 {gt_pic.max():.3f}")
+    # print(f"预测掩码值范围: {pred_pic.min():.3f} 到 {pred_pic.max():.3f}")
+    
 
     # np.where 返回的是满足条件的像素索引 (row, col)
+    # crop_pic = np.zeros_like(img_ori)
     crop_pic = np.zeros_like(img_ori)
-    mask = (pred_pic==1.0)
+    mask = (pred_pic > 0.5)  # 或使用合适的阈值，比如 > 0
+    # print(f"掩码包含 {mask.sum()} 个True像素（总共 {mask.size} 像素）")
+    
+    
     # #
     # # # 2. 将掩码图中为 255 的位置的原图像素值复制到 modified_img 中
     # for row in range(crop_pic.shape[0]):
@@ -134,6 +143,13 @@ def visual_compare(image_filename,pred,gt,opt,epoch):
     #         if pred_pic[row,col]==1.0:
     #             crop_pic[:, row,col] = img_ori[:, row,col]
     crop_pic[mask,:] = img_ori[mask,:]
+    
+    # 创建彩色掩码叠加
+    colored_mask = np.zeros_like(img_ori)
+    colored_mask[mask] = [0, 0, 255]  # 红色掩码
+    crop_pic_with_boundary = cv2.addWeighted(crop_pic, 0.8, colored_mask, 0.2, 0)
+    
+    
     print(image_filename)
     # 创建一个图形窗口
     plt.figure(figsize=(12, 3))
@@ -143,21 +159,35 @@ def visual_compare(image_filename,pred,gt,opt,epoch):
     plt.title('ori_image')
     plt.axis('off')
 
-    # 显示第二个掩码图
+    # # 显示第二个掩码图
+    # plt.subplot(1, 4, 2)
+    # plt.imshow(gt_pic,cmap='gray')
+    # plt.title('gt_mask')
+    # plt.axis('off')
+
+    # # 显示第三个掩码图
+    # plt.subplot(1, 4, 3)
+    # plt.imshow(pred_pic,cmap='gray')
+    # plt.title('pred_mask')
+    # plt.axis('off')
+
+    # # 显示第四个掩码图
+    # plt.subplot(1, 4, 4)
+    # plt.imshow(crop_pic)
+    # plt.title('crop_pic')
+    # plt.axis('off')
     plt.subplot(1, 4, 2)
-    plt.imshow(gt_pic,cmap='gray')
+    plt.imshow((gt_pic - gt_pic.min()) / (gt_pic.max() - gt_pic.min() + 1e-8), cmap='gray')
     plt.title('gt_mask')
     plt.axis('off')
-
-    # 显示第三个掩码图
+    
     plt.subplot(1, 4, 3)
-    plt.imshow(pred_pic,cmap='gray')
+    plt.imshow((pred_pic - pred_pic.min()) / (pred_pic.max() - pred_pic.min() + 1e-8), cmap='gray')
     plt.title('pred_mask')
     plt.axis('off')
-
-    # 显示第四个掩码图
+    
     plt.subplot(1, 4, 4)
-    plt.imshow(crop_pic)
+    plt.imshow(crop_pic_with_boundary)
     plt.title('crop_pic')
     plt.axis('off')
     # 显示图像

@@ -3,7 +3,7 @@ import os
 from random import randint
 import numpy as np
 import torch
-from skimage import io, color
+# from skimage import io, color
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms as T
@@ -230,6 +230,9 @@ class JointTransform2D:
             affine_params = T.RandomAffine(180).get_params((-90, 90), (1, 1), (2, 2), (-45, 45), self.crop)
             image, mask = F.affine(image, *affine_params), F.affine(mask, *affine_params)
         # transforming to tensor
+        mask_np = np.array(mask)
+        
+        # print(f"原始掩码: 最小值={mask_np.min()}, 最大值={mask_np.max()}, 形状={mask_np.shape}")
         image, mask = F.resize(image, (self.img_size, self.img_size), InterpolationMode.BILINEAR), F.resize(mask, (self.ori_size, self.ori_size), InterpolationMode.NEAREST)
         low_mask = F.resize(mask, (self.low_img_size, self.low_img_size), InterpolationMode.NEAREST)
         image = F.to_tensor(image)
@@ -240,6 +243,9 @@ class JointTransform2D:
         else:
             mask = to_long_tensor(mask)
             low_mask = to_long_tensor(low_mask)
+        mask_np = np.array(mask)
+        
+        # print(f"处理后掩码: 最小值={mask_np.min()}, 最大值={mask_np.max()}, 形状={mask_np.shape}")    
         return image, mask, low_mask
 
 
@@ -281,7 +287,7 @@ class ImageToImage2D(Dataset):
         one_hot_mask: bool, if True, returns the mask in one-hot encoded form.
     """
 
-    def __init__(self, dataset_path: str, split='train', joint_transform: Callable = None, img_size=256, prompt = "click", class_id=1,
+    def __init__(self, dataset_path: str, split='train', joint_transform: Callable = None, img_size=256, prompt = "click2", class_id=1,
                  one_hot_mask: int = False) -> None:
         self.dataset_path = dataset_path
         self.one_hot_mask = one_hot_mask
@@ -314,6 +320,9 @@ class ImageToImage2D(Dataset):
             if 'KTD' in self.dataset_path:
                 #1/KTD/212/1-7
                 class_id0,sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2], 2-int(id_.split('/')[3].split('-')[0])  # 用2减的原因是 1为异常 2为正常
+            elif 'baseline' in self.dataset_path:
+                 sub_path, filename, class_label = '',id_, id_.split('_')[2].replace('.png', '')
+                 class_id0=class_label
             else:
                 sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], int(id_.split('/')[2])
             # class_id0, sub_path, filename = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2]
@@ -411,12 +420,12 @@ class ImageToImage2D(Dataset):
            return {
                 'image': image,
                 'label': mask,
-                'p_label': point_labels,
-                'pt': pt,
-                'bbox': bbox,
+                # 'p_label': point_labels,
+                # 'pt': pt,
+                # 'bbox': bbox,
                 'low_mask': low_mask,
                 'image_name': filename,  # 去掉 .png
-                'class_id': class_id,
+                # 'class_id': class_id,
                 'class_label': class_label,
             }
         else:

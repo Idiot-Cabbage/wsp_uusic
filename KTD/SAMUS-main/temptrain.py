@@ -31,11 +31,8 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="torchvision")
 import math
 from torchvision import transforms
-from utils.dataset import RandomGenerator, CenterCropGenerator  
+from utils.dataset import RandomGenerator, CenterCropGenerator,TransformAdapter 
 
-
-print("当前工作目录:", os.getcwd())
-print("脚本所在目录:", os.path.dirname(os.path.abspath(__file__)))
 def visualize_dataset_samples(dataloader, dataset_name, num_samples=8):
     """可视化数据集中的前几个样本"""
     import matplotlib.pyplot as plt
@@ -99,10 +96,12 @@ def visualize_dataset_samples(dataloader, dataset_name, num_samples=8):
         axes[2].set_title('叠加效果')
         axes[2].axis('off')
         
-        # 保存图像
+        # 保存图像py
         plt.tight_layout()
         plt.savefig(f'{save_dir}/{filename}_sample_{i}.png')
         plt.close()
+
+      
 def main():
 
     #  ============================================================================= parameters setting ====================================================================================
@@ -153,11 +152,13 @@ def main():
     model = get_model(args.modelname, args=args, opt=opt)
     opt.batch_size = opt.batch_size * args.n_gpu
 
-    tf_train = JointTransform2D(img_size=args.encoder_input_size, low_img_size=args.low_image_size, ori_size=opt.img_size, crop=opt.crop, p_flip=0.0, p_rota=0.5, p_scale=0.5, p_gaussn=0.0,
-                                p_contr=0.5, p_gama=0.5, p_distor=0.0, color_jitter_params=None, long_mask=True)  # image reprocessing
-    tf_val = JointTransform2D(img_size=args.encoder_input_size, low_img_size=args.low_image_size, ori_size=opt.img_size, crop=opt.crop, p_flip=0, color_jitter_params=None, long_mask=True)
-    # tf_train = transforms.Compose([RandomGenerator(output_size=[args.encoder_input_size, args.encoder_input_size])])
-    # tf_val = CenterCropGenerator(output_size=[args.encoder_input_size, args.encoder_input_size])
+    # tf_train = JointTransform2D(img_size=args.encoder_input_size, low_img_size=args.low_image_size, ori_size=opt.img_size, crop=opt.crop, p_flip=0.0, p_rota=0.5, p_scale=0.5, p_gaussn=0.0,
+    #                             p_contr=0.5, p_gama=0.5, p_distor=0.0, color_jitter_params=None, long_mask=True)  # image reprocessing
+    # tf_val = JointTransform2D(img_size=args.encoder_input_size, low_img_size=args.low_image_size, ori_size=opt.img_size, crop=False, p_flip=0, color_jitter_params=None, long_mask=True)
+    tf_train = TransformAdapter(RandomGenerator(output_size=[args.encoder_input_size, args.encoder_input_size]))
+    tf_val = CenterCropGenerator(output_size=[args.encoder_input_size, args.encoder_input_size])
+    
+    
     train_dataset = ImageToImage2D(opt.data_path, opt.train_split, tf_train, img_size=args.encoder_input_size)
     val_dataset = ImageToImage2D(opt.data_path, opt.val_split, tf_val, img_size=args.encoder_input_size)  # return image, mask, and filename
     trainloader = DataLoader(train_dataset, batch_size=opt.batch_size, shuffle=True, num_workers=8, pin_memory=True)
@@ -165,13 +166,13 @@ def main():
     
     
     
-    # # 可视化训练集和验证集样本
-    # visualize_dataset_samples(trainloader, 'train')
-    # visualize_dataset_samples(valloader, 'val')
+    # 可视化训练集和验证集样本
+    visualize_dataset_samples(trainloader, 'train')
+    visualize_dataset_samples(valloader, 'val')
 
-    # print("\n数据可视化完成，请检查 'dataset_visualization' 目录")
-    # import sys
-    # sys.exit(0)  # 可视化后退出程序
+    print("\n数据可视化完成，请检查 'dataset_visualization' 目录")
+    import sys
+    sys.exit(0)  # 可视化后退出程序
     model.to(device)
     if opt.pre_trained:
         checkpoint = torch.load(opt.load_path)
