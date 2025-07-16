@@ -146,7 +146,7 @@ def visual_compare(image_filename,pred,gt,opt,epoch):
     
     # 创建彩色掩码叠加
     colored_mask = np.zeros_like(img_ori)
-    colored_mask[mask] = [0, 0, 255]  # 红色掩码
+    # colored_mask[mask] = [0, 0, 255]  # 红色掩码
     crop_pic_with_boundary = cv2.addWeighted(crop_pic, 0.8, colored_mask, 0.2, 0)
     
     

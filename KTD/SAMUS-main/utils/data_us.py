@@ -320,9 +320,17 @@ class ImageToImage2D(Dataset):
             if 'KTD' in self.dataset_path:
                 #1/KTD/212/1-7
                 class_id0,sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2], 2-int(id_.split('/')[3].split('-')[0])  # 用2减的原因是 1为异常 2为正常
-            elif 'baseline' in self.dataset_path:
+            elif 'BUS-BRA' in self.dataset_path:
                  sub_path, filename, class_label = '',id_, id_.split('_')[2].replace('.png', '')
                  class_id0=class_label
+                 
+                 #220_1
+            elif 'private_Thyroid' in self.dataset_path:
+                 sub_path, filename, class_label = '',id_, id_.split('_')[1].replace('.png', '')
+                 class_id0=class_label   
+            elif 'Fetal_HC' in self.dataset_path:
+                 sub_path, filename, class_label = '',id_, '0'
+                 class_id0=class_label 
             else:
                 sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], int(id_.split('/')[2])
             # class_id0, sub_path, filename = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2]
@@ -331,9 +339,18 @@ class ImageToImage2D(Dataset):
             if 'KTD' in self.dataset_path:
                 class_id0, sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2], 2-int(id_.split('/')[3].split('-')[0])
             #benign_178_0.png
-            elif 'baseline' in self.dataset_path:
+            elif 'BUS-BRA' in self.dataset_path:
                  sub_path, filename, class_label = '',id_, id_.split('_')[2].replace('.png', '')
                  class_id0=class_label
+                 
+                 #220_1
+            elif 'private_Thyroid' in self.dataset_path:
+                 sub_path, filename, class_label = '',id_, id_.split('_')[1].replace('.png', '')
+                 class_id0=class_label   
+            elif 'Fetal_HC' in self.dataset_path:
+                 sub_path, filename, class_label = '',id_, '0'
+                 class_id0=class_label      
+                  
             
             else:
                 class_id0, sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2], int(id_.split('/')[3])
