@@ -1,0 +1,27 @@
+MODEL:
+  TYPE: samus
+  NAME: SAMUS
+  NUM_CLASSES: 2
+  PRETRAINED: 'pretrained_ckpt/samus_vit_base.pth'
+  SAMUS_CHECKPOINT: '/home/wtchen/wsp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
+  
+SAMUS:
+  ENCODER_INPUT_SIZE: 224
+  LOW_IMAGE_SIZE: 128
+  VIT_NAME: 'vit_b'
+  SAM_CKPT: '/home/wtchen/wsp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
+# configs/samus_config.yaml
+DATA:
+  BATCH_SIZE: 4  # 每个GPU处理8个样本，总共16个样本
+
+# TRAIN:
+#   BATCH_SIZE: 4
+
+
+# # 设置环境变量
+# export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True  # 启动2GPU训练
+# torchrun --nproc_per_node=2 --master_port=29500 omni_train.py \
+#     --cfg configs/samus_config.yaml \
+#     --prompt \
+#     --output_dir exp_out/samus_trial_1 \
+#     --batch_size 8
