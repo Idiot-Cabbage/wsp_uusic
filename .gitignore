@@ -5,6 +5,13 @@ baseline/networks/__pycache__/
 baseline/pretrained_ckpt/swin_tiny_patch4_window7_224.pth
 baseline/datasets/__pycache__/dataset.cpython-310.pyc
 baseline/datasets/__pycache__/
+blsamus/data/
+blsamus/exp_out/
+blsamus/__pycache__/
+blsamus/networks/__pycache__/
+blsamus/pretrained_ckpt/swin_tiny_patch4_window7_224.pth
+blsamus/datasets/__pycache__/dataset.cpython-310.pyc
+blsamus/datasets/__pycache__/
 KTD/SAMUS-main/dataset/
 KTD/SAMUS-main/example_of_required_dataset_format/Ourdatasets/IMG/2.JPG
 KTD/SAMUS-main/result/
@@ -22,4 +29,11 @@ dataset_visualization/
 tensorboard/
 result/UUSIC/
 checkpoints/
-KTD/SAMUS-main/models/__pycache__
+KTD/SAMUS-main/models/__pycache__/
+blsamus/networks/models/segment_anything/modeling/__pycache__/
+blsamus/networks/models/segment_anything/__pycache__/
+blsamus/networks/models/segment_anything_samus/__pycache__/
+blsamus/networks/models/segment_anything_samus/modeling/__pycache__/
+blsamus/networks/models/segment_anything_samus/utils/__pycache__/
+blsamus/networks/models/segment_anything/utils/__pycache__/
+blsamus/networks/models/__pycache__/
