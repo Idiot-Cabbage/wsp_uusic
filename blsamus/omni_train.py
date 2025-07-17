@@ -40,7 +40,7 @@ parser.add_argument('--img_size', type=int,
                     default=224, help='input patch size of network input')
 parser.add_argument('--seed', type=int,
                     default=1234, help='random seed')
-parser.add_argument('--cfg', type=str, default="configs/swin_tiny_patch4_window7_224_lite.yaml",
+parser.add_argument('--cfg', type=str, default="/home/wtchen/wsp/wsp_uusic/blsamus/configs/samus_config.yaml",
                     metavar="FILE", help='path to config file', )
 parser.add_argument(
     "--opts",

@@ -58,7 +58,7 @@ class SAMUSAdapter(nn.Module):
                 self.low_image_size = 128
                 self.vit_name = 'vit_b'
                 self.sam_ckpt = '../KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
-                self.batch_size = 2
+                self.batch_size = 1
                 self.device = 'cuda'
                 
         return SAMUSArgs()
@@ -297,9 +297,7 @@ class SAMUSAdapter(nn.Module):
         
         # 在分布式环境中，每个GPU处理更小的batch
         # 使用混合精度训练
-        # with torch.cuda.amp.autocast():
-        # 改为：
-        with torch.amp.autocast('cuda'):
+        with torch.cuda.amp.autocast():
             try:
                 samus_output = self.samus_model(image_batch)
                 
