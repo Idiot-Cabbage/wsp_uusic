@@ -33,20 +33,24 @@ def omni_train(args, model, snapshot_path):
     # 检查是否是分布式训练环境
     if "LOCAL_RANK" in os.environ:
         torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
+        device = torch.device("cuda", int(os.environ["LOCAL_RANK"]))
+        gpu_id = rank = int(os.environ["LOCAL_RANK"])
+        world_size = int(os.environ["WORLD_SIZE"])
+        torch.distributed.init_process_group(backend="nccl", init_method='env://', timeout=datetime.timedelta(seconds=7200))
+
+        if int(os.environ["LOCAL_RANK"]) == 0:
+            print('** GPU NUM ** : ', torch.cuda.device_count())
+            print('** WORLD SIZE ** : ', torch.distributed.get_world_size())
+        print(f"** DDP ** : Start running on rank {rank}.")
     else:
         # 单GPU训练，使用默认设备
-        torch.cuda.set_device(0)    
+        torch.cuda.set_device(1)   
+        world_size = 1 
+        gpu_id =1
+        rank = 0
+        device = torch.device("cuda",1)
 
-    torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
-    device = torch.device("cuda", int(os.environ["LOCAL_RANK"]))
-    gpu_id = rank = int(os.environ["LOCAL_RANK"])
-    world_size = int(os.environ["WORLD_SIZE"])
-    torch.distributed.init_process_group(backend="nccl", init_method='env://', timeout=datetime.timedelta(seconds=7200))
-
-    if int(os.environ["LOCAL_RANK"]) == 0:
-        print('** GPU NUM ** : ', torch.cuda.device_count())
-        print('** WORLD SIZE ** : ', torch.distributed.get_world_size())
-    print(f"** DDP ** : Start running on rank {rank}.")
+    
 
     logging.basicConfig(filename=snapshot_path + "/log.txt", level=logging.INFO,
                         format='[%(asctime)s.%(msecs)03d] %(message)s', datefmt='%H:%M:%S')
@@ -164,7 +168,7 @@ def omni_train(args, model, snapshot_path):
     best_performance = 0.0
     best_epoch = 0
 
-    if int(os.environ["LOCAL_RANK"]) != 0:
+    if rank != 0:
         iterator = tqdm(range(resume_epoch, max_epoch), ncols=70, disable=True)
     else:
         iterator = tqdm(range(resume_epoch, max_epoch), ncols=70, disable=False)
@@ -189,8 +193,10 @@ def omni_train(args, model, snapshot_path):
                     1, 0]).float().to(device=device)
                 (x_seg, _, _) = model((image_batch, position_prompt, task_prompt, type_prompt, nature_prompt))
             else:
+                # print('进入')
                 (x_seg, _, _) = model(image_batch)
 
+            print(torch.isnan(x_seg).any(), torch.isinf(x_seg).any())
             loss_ce = seg_ce_loss(x_seg, label_batch[:].long())
             loss_dice = seg_dice_loss(x_seg, label_batch, softmax=True)
             loss = 0.4 * loss_ce + 0.6 * loss_dice

@@ -25,8 +25,8 @@ from config import get_config
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
-                    default='data/', help='root dir for data')
-parser.add_argument('--output_dir', type=str, help='output dir')
+                    default='/home/wtchen/wsp/wsp_uusic/blsamus/data', help='root dir for data')
+parser.add_argument('--output_dir', type=str, default='/home/wtchen/wsp/wsp_uusic/blsamus/exp_out/samus_debug', help='output dir')
 parser.add_argument('--max_epochs', type=int,
                     default=200, help='maximum epoch number to train')
 parser.add_argument('--batch_size', type=int,
@@ -74,7 +74,7 @@ args = parser.parse_args()
 
 config = get_config(args)
 args.num_classes = config.MODEL.NUM_CLASSES  # 确保这行存在
-
+args.batch_size = 2
 
 if __name__ == "__main__":
     if not args.deterministic:
