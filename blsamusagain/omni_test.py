@@ -19,6 +19,26 @@ from sklearn.metrics import accuracy_score
 
 from networks.omni_vision_transformer import OmniVisionTransformer as ViT_omni
 
+# 添加网络模块路径
+current_dir = os.path.dirname(__file__)
+networks_path = os.path.join(current_dir, 'networks')
+if networks_path not in sys.path:
+    sys.path.insert(0, networks_path)
+
+# 添加 SAMUS 模型路径
+samus_path = os.path.join(current_dir, '../KTD/SAMUS-main')
+if samus_path not in sys.path:
+    sys.path.insert(0, samus_path)
+
+# 导入 SAMUSAdapter 类
+try:
+    from samus_adapter import SAMUSAdapter
+    print("✓ SAMUSAdapter 导入成功")
+    USE_SAMUS = True
+except ImportError as e:
+    print(f"✗ SAMUSAdapter 导入失败: {e}")
+    USE_SAMUS = False
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
                     default='data/', help='root dir for data')
@@ -56,6 +76,8 @@ parser.add_argument('--eval', action='store_true', help='Perform evaluation only
 parser.add_argument('--throughput', action='store_true', help='Test throughput only')
 
 parser.add_argument('--prompt', action='store_true', help='using prompt')
+parser.add_argument('--use_samus', action='store_true', help='use SAMUS model for testing')
+
 
 args = parser.parse_args()
 config = get_config(args)
@@ -222,6 +244,7 @@ def inference(args, model, test_save_path=None):
                                 time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())])
 
 
+# 修改第241行附近的模型创建代码
 if __name__ == "__main__":
     if not args.deterministic:
         cudnn.benchmark = True
@@ -234,11 +257,34 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
 
-    net = ViT_omni(
-        config,
-        prompt=args.prompt,
-    ).cuda()
+    # 根据训练时使用的模型创建相应的测试模型
+    # if USE_SAMUS:
+    #     print("使用 SAMUS 模型进行测试")
+    #     net = SAMUSAdapter(
+    #         config,
+    #         prompt=args.prompt,
+    #     ).cuda()
+    # else:
+    #     print("使用 ViT_omni 模型进行测试")
+    #     net = ViT_omni(
+    #         config,
+    #         prompt=args.prompt,
+    #     ).cuda()
+    if args.use_samus and USE_SAMUS:  # 修改为检查命令行参数
+        print("使用 SAMUS 模型进行测试")
+        net = SAMUSAdapter(
+            config,
+            prompt=args.prompt,
+        ).cuda()
+    else:
+        print("使用 ViT_omni 模型进行测试")
+        net = ViT_omni(
+            config,
+            prompt=args.prompt,
+        ).cuda()
     net.load_from(config)
+    
+    # 其余代码保持不变...
 
     snapshot = os.path.join(args.output_dir, 'best_model.pth')
     if not os.path.exists(snapshot):

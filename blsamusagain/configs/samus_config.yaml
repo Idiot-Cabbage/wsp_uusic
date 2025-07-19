@@ -3,13 +3,13 @@ MODEL:
   NAME: SAMUS
   NUM_CLASSES: 2
   PRETRAINED: ''
-  SAMUS_CHECKPOINT: '/home/wtchen/wsp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
+  SAMUS_CHECKPOINT:  '/root/autodl-tmp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
   
 SAMUS:
   ENCODER_INPUT_SIZE: 224
   LOW_IMAGE_SIZE: 128
   VIT_NAME: 'vit_b'
-  SAM_CKPT: '/home/wtchen/wsp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
+  SAM_CKPT:  '/root/autodl-tmp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
 
 DATA:
   BATCH_SIZE: 4

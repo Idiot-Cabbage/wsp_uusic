@@ -118,7 +118,7 @@ class SAMUSAdapter(nn.Module):
                 self.low_image_size = 128
                 self.vit_name = 'vit_b'
                 # 使用配置文件中的路径或默认路径
-                self.sam_ckpt = '/home/wtchen/wsp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
+                self.sam_ckpt = '/root/autodl-tmp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
                 self.batch_size = 1
                 self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
                 
