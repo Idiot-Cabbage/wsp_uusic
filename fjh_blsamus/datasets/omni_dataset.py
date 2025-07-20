@@ -178,7 +178,6 @@ class USdatasetOmni_seg(Dataset):
                 base_dir, "segmentation", dataset_name, split + ".txt"), dataset_name, "imgs"))
             self.subset_len.append(len(list_add_prefix(os.path.join(
                 base_dir, "segmentation", dataset_name, split + ".txt"), dataset_name, "imgs")))
-            break
 
     def __len__(self):
         return len(self.sample_list)

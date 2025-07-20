@@ -16,35 +16,21 @@ from datasets.dataset import USdatasetCls, USdatasetSeg
 
 from utils import omni_seg_test
 from sklearn.metrics import accuracy_score
+# 在文件开头添加
+USE_SAMUS = True  # 与训练时保持一致
 
-from networks.omni_vision_transformer import OmniVisionTransformer as ViT_omni
+if USE_SAMUS:
+    from networks.samus_adapter import SAMUSAdapter as ModelClass
+else:
+    from networks.omni_vision_transformer import OmniVisionTransformer as ModelClass
 
-# 添加网络模块路径
-current_dir = os.path.dirname(__file__)
-networks_path = os.path.join(current_dir, 'networks')
-if networks_path not in sys.path:
-    sys.path.insert(0, networks_path)
-
-# 添加 SAMUS 模型路径
-samus_path = os.path.join(current_dir, '../KTD/SAMUS-main')
-if samus_path not in sys.path:
-    sys.path.insert(0, samus_path)
-
-# 导入 SAMUSAdapter 类
-try:
-    from samus_adapter import SAMUSAdapter
-    print("✓ SAMUSAdapter 导入成功")
-    USE_SAMUS = True
-except ImportError as e:
-    print(f"✗ SAMUSAdapter 导入失败: {e}")
-    USE_SAMUS = False
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
                     default='data/', help='root dir for data')
 parser.add_argument('--output_dir', type=str, help='output dir')
 parser.add_argument('--max_epochs', type=int, default=200, help='maximum epoch number to train')
-parser.add_argument('--batch_size', type=int, default=16,
+parser.add_argument('--batch_size', type=int, default=4,
                     help='batch_size per gpu')
 parser.add_argument('--img_size', type=int, default=224, help='input patch size of network input')
 parser.add_argument('--is_saveout', action="store_true", help='whether to save results during inference')
@@ -52,7 +38,7 @@ parser.add_argument('--test_save_dir', type=str, default='../predictions', help=
 parser.add_argument('--deterministic', type=int,  default=1, help='whether use deterministic training')
 parser.add_argument('--base_lr', type=float,  default=0.01, help='segmentation network learning rate')
 parser.add_argument('--seed', type=int, default=1234, help='random seed')
-parser.add_argument('--cfg', type=str, default="configs/samus_config.yaml",
+parser.add_argument('--cfg', type=str, default="configs/swin_tiny_patch4_window7_224_lite.yaml",
                     metavar="FILE", help='path to config file', )
 parser.add_argument(
     "--opts",
@@ -76,8 +62,6 @@ parser.add_argument('--eval', action='store_true', help='Perform evaluation only
 parser.add_argument('--throughput', action='store_true', help='Test throughput only')
 
 parser.add_argument('--prompt', action='store_true', help='using prompt')
-parser.add_argument('--use_samus', action='store_true', help='use SAMUS model for testing')
-
 
 args = parser.parse_args()
 config = get_config(args)
@@ -244,7 +228,6 @@ def inference(args, model, test_save_path=None):
                                 time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())])
 
 
-# 修改第241行附近的模型创建代码
 if __name__ == "__main__":
     if not args.deterministic:
         cudnn.benchmark = True
@@ -257,34 +240,11 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
 
-    # 根据训练时使用的模型创建相应的测试模型
-    # if USE_SAMUS:
-    #     print("使用 SAMUS 模型进行测试")
-    #     net = SAMUSAdapter(
-    #         config,
-    #         prompt=args.prompt,
-    #     ).cuda()
-    # else:
-    #     print("使用 ViT_omni 模型进行测试")
-    #     net = ViT_omni(
-    #         config,
-    #         prompt=args.prompt,
-    #     ).cuda()
-    if args.use_samus and USE_SAMUS:  # 修改为检查命令行参数
-        print("使用 SAMUS 模型进行测试")
-        net = SAMUSAdapter(
-            config,
-            prompt=args.prompt,
-        ).cuda()
-    else:
-        print("使用 ViT_omni 模型进行测试")
-        net = ViT_omni(
-            config,
-            prompt=args.prompt,
-        ).cuda()
+    net = ModelClass(
+        config,
+        prompt=args.prompt,
+    ).cuda()
     net.load_from(config)
-    
-    # 其余代码保持不变...
 
     snapshot = os.path.join(args.output_dir, 'best_model.pth')
     if not os.path.exists(snapshot):

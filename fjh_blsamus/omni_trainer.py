@@ -64,7 +64,6 @@ def omni_train(args, model, snapshot_path):
 
     db_train_seg = USdatasetOmni_seg(base_dir=args.root_path, split="train", transform=transforms.Compose(
         [RandomGenerator(output_size=[args.img_size, args.img_size])]), prompt=args.prompt)
-    print(db_train_seg)
 
     # weight_base = [1/4, 1/2, 2, 2, 1, 2, 2]
     weight_base = [
@@ -138,7 +137,7 @@ def omni_train(args, model, snapshot_path):
 
     model = model.to(device=device)
     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu_id], find_unused_parameters=True)
+    # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu_id], find_unused_parameters=True)
 
     model.train()
 
@@ -217,10 +216,62 @@ def omni_train(args, model, snapshot_path):
 
             logging.info('global iteration %d and seg iteration %d : loss : %f' %
                          (global_iter_num, seg_iter_num, loss.item()))
+        
+        for i_batch, sampled_batch in tqdm(enumerate(trainloader_cls)):
+            image_batch, label_batch = sampled_batch['image'], sampled_batch['label']
+            num_classes_batch = sampled_batch['num_classes']
+            image_batch, label_batch = image_batch.to(device=device), label_batch.to(device=device)
+            if args.prompt:
+                position_prompt = torch.tensor(np.array(sampled_batch['position_prompt'])).permute([
+                    1, 0]).float().to(device=device)
+                task_prompt = torch.tensor(np.array(sampled_batch['task_prompt'])).permute([
+                    1, 0]).float().to(device=device)
+                type_prompt = torch.tensor(np.array(sampled_batch['type_prompt'])).permute([
+                    1, 0]).float().to(device=device)
+                nature_prompt = torch.tensor(np.array(sampled_batch['nature_prompt'])).permute([
+                    1, 0]).float().to(device=device)
+                (_, x_cls_2, x_cls_4) = model((image_batch, position_prompt, task_prompt, type_prompt, nature_prompt))
+            else:
+                (_, x_cls_2, x_cls_4) = model(image_batch)
 
-        torch.cuda.empty_cache()
-        
-        
+            loss = 0.0
+            
+            mask_2_way = (num_classes_batch == 2)
+            mask_4_way = (num_classes_batch == 4)
+
+
+            if mask_2_way.any():
+                outputs_2_way = x_cls_2[mask_2_way]
+                labels_2_way = label_batch[mask_2_way]
+                loss_ce_2 = cls_ce_loss_2way(outputs_2_way, labels_2_way[:].long())
+                loss += loss_ce_2
+
+
+            if mask_4_way.any():
+                outputs_4_way = x_cls_4[mask_4_way]
+                labels_4_way = label_batch[mask_4_way]
+                loss_ce_4 = cls_ce_loss_4way(outputs_4_way, labels_4_way[:].long())
+                loss += loss_ce_4
+
+            # loss_ce = cls_ce_loss(x_cls, label_batch[:].long())
+            # loss = loss_ce
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            lr_ = base_lr * (1.0 - global_iter_num / max_iterations) ** 0.9
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = lr_
+
+            cls_iter_num = cls_iter_num + 1
+            global_iter_num = global_iter_num + 1
+
+            writer.add_scalar('info/lr', lr_, cls_iter_num)
+            writer.add_scalar('info/cls_loss', loss, cls_iter_num)
+
+            logging.info('global iteration %d and cls iteration %d : loss : %f' %
+                         (global_iter_num, cls_iter_num, loss.item()))
+            
         dist.barrier()
 
         if int(os.environ["LOCAL_RANK"]) == 0:
@@ -239,24 +290,20 @@ def omni_train(args, model, snapshot_path):
             model.eval()
             total_performance = 0.0
 
-            # seg_val_set = [
-            #     "BUS-BRA",
-            #     "BUSIS",
-            #     "BUSI",
-            #     "CAMUS",
-            #     "DDTI",
-            #     "Fetal_HC",
-            #     "KidneyUS",
-            #     "private_Thyroid",
-            #     "private_Kidney",
-            #     "private_Fetal_Head",
-            #     "private_Cardiac",
-            #     "private_Breast_luminal",
-            #     "private_Breast",
-            #     ]
-            
             seg_val_set = [
-                "private_Kidney",               
+                "BUS-BRA",
+                "BUSIS",
+                "BUSI",
+                "CAMUS",
+                "DDTI",
+                "Fetal_HC",
+                "KidneyUS",
+                "private_Thyroid",
+                "private_Kidney",
+                "private_Fetal_Head",
+                "private_Cardiac",
+                "private_Breast_luminal",
+                "private_Breast",
                 ]
             seg_avg_performance = 0.0
 
@@ -325,50 +372,85 @@ def omni_train(args, model, snapshot_path):
                 ]
             cls_avg_performance = 0.0
 
-            # for dataset_name in cls_val_set:
-            #     if dataset_name == "private_Breast_luminal":
-            #         num_classes = 4
-            #     else:
-            #         num_classes = 2
-            #     db_val = USdatasetCls(
-            #         base_dir=os.path.join(args.root_path, "classification", dataset_name),
-            #         split="val",
-            #         list_dir=os.path.join(args.root_path, "classification", dataset_name),
-            #         transform=CenterCropGenerator(output_size=[args.img_size, args.img_size]),
-            #         prompt=args.prompt
-            #     )
+            for dataset_name in cls_val_set:
+                if dataset_name == "private_Breast_luminal":
+                    num_classes = 4
+                else:
+                    num_classes = 2
+                db_val = USdatasetCls(
+                    base_dir=os.path.join(args.root_path, "classification", dataset_name),
+                    split="val",
+                    list_dir=os.path.join(args.root_path, "classification", dataset_name),
+                    transform=CenterCropGenerator(output_size=[args.img_size, args.img_size]),
+                    prompt=args.prompt
+                )
 
-            #     val_loader = DataLoader(db_val, batch_size=batch_size, shuffle=False, num_workers=16)
-            #     logging.info("{} val iterations per epoch".format(len(val_loader)))
-            #     model.eval()
+                val_loader = DataLoader(db_val, batch_size=batch_size, shuffle=False, num_workers=16)
+                logging.info("{} val iterations per epoch".format(len(val_loader)))
+                model.eval()
 
-            #     label_list = []
-            #     prediction_prob_list = []
-            #     for i_batch, sampled_batch in tqdm(enumerate(val_loader)):
-            #         image, label = sampled_batch["image"], sampled_batch["label"]
-            #         if args.prompt:
-            #             position_prompt = torch.tensor(
-            #                 np.array(sampled_batch['position_prompt'])).permute([1, 0]).float()
-            #             task_prompt = torch.tensor(
-            #                 np.array([[0]*position_prompt.shape[0], [1]*position_prompt.shape[0]])).permute([1, 0]).float()
-            #             type_prompt = torch.tensor(np.array(sampled_batch['type_prompt'])).permute([1, 0]).float()
-            #             nature_prompt = torch.tensor(np.array(sampled_batch['nature_prompt'])).permute([1, 0]).float()
-            #             with torch.no_grad():
-            #                 output = model((image.cuda(), position_prompt.cuda(), task_prompt.cuda(),
-            #                                type_prompt.cuda(), nature_prompt.cuda()))
-            #         else:
-            #             with torch.no_grad():
-            #                 output = model(image.cuda())
-
-
-                 
-
-           
-           
+                label_list = []
+                prediction_prob_list = []
+                for i_batch, sampled_batch in tqdm(enumerate(val_loader)):
+                    image, label = sampled_batch["image"], sampled_batch["label"]
+                    if args.prompt:
+                        position_prompt = torch.tensor(
+                            np.array(sampled_batch['position_prompt'])).permute([1, 0]).float()
+                        task_prompt = torch.tensor(
+                            np.array([[0]*position_prompt.shape[0], [1]*position_prompt.shape[0]])).permute([1, 0]).float()
+                        type_prompt = torch.tensor(np.array(sampled_batch['type_prompt'])).permute([1, 0]).float()
+                        nature_prompt = torch.tensor(np.array(sampled_batch['nature_prompt'])).permute([1, 0]).float()
+                        with torch.no_grad():
+                            output = model((image.cuda(), position_prompt.cuda(), task_prompt.cuda(),
+                                           type_prompt.cuda(), nature_prompt.cuda()))
+                    else:
+                        with torch.no_grad():
+                            output = model(image.cuda())
 
 
+                    if num_classes == 4:
+                        logits = output[2]
+                    else:
+                        logits = output[1]
 
-            TotalAvgPerformance = total_performance
+                    # output_prob = torch.softmax(logits, dim=0).data.cpu().numpy()
+                    if logits is not None:
+                        output_prob = torch.softmax(logits, dim=0).data.cpu().numpy()
+                        # 继续处理 output_prob
+                    else:
+                        print("警告：logits 为 None，跳过 softmax 处理")
+                        # 为 output_prob 提供默认值或跳过后续处理
+                        output_prob = None  # 或者其他适当的默认值
+
+                    label_list.append(label.numpy())
+                    prediction_prob_list.append(output_prob)
+
+                # label_list = np.expand_dims(np.concatenate(
+                #     (np.array(label_list[:-1]).flatten(), np.array(label_list[-1]).flatten())), axis=1).astype('uint8')
+                # label_list_OneHot = np.eye(num_classes)[label_list].squeeze(1)
+                # performance = roc_auc_score(label_list_OneHot, np.concatenate(
+                #     (np.array(prediction_prob_list[:-1]).reshape(-1, 2), prediction_prob_list[-1])), multi_class='ovo')
+                
+
+
+                label_list = np.expand_dims(np.concatenate(
+                    (np.array(label_list[:-1]).flatten(), np.array(label_list[-1]).flatten())), axis=1).astype('uint8')
+                label_list_OneHot = np.eye(num_classes)[label_list].squeeze(1)
+                
+                prediction_probs_reshaped = np.array(prediction_prob_list[:-1]).reshape(-1, num_classes)
+                all_prediction_probs = np.concatenate((prediction_probs_reshaped, prediction_prob_list[-1]))
+
+                performance = roc_auc_score(label_list_OneHot, all_prediction_probs, multi_class='ovo')
+
+                writer.add_scalar('info/val_cls_metric_{}'.format(dataset_name), performance, epoch_num)
+
+                cls_avg_performance += performance
+
+            cls_avg_performance = cls_avg_performance / (len(cls_val_set)+1e-6)
+            total_performance += cls_avg_performance
+            writer.add_scalar('info/val_metric_cls_Total', cls_avg_performance, epoch_num)
+
+            TotalAvgPerformance = total_performance/2
 
             logging.info('This epoch %d Validation performance: %f' % (epoch_num, TotalAvgPerformance))
             logging.info('But the best epoch is: %d and performance: %f' % (best_epoch, best_performance))

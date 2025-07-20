@@ -113,4 +113,4 @@ if __name__ == "__main__":
             else:
                 param.requires_grad = False
     
-    omni_train(args, net, args.output_dir)
+    omni_train(args, net, args.output_dir) 

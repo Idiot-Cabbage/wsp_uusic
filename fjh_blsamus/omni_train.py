@@ -40,7 +40,7 @@ parser.add_argument('--img_size', type=int,
                     default=224, help='input patch size of network input')
 parser.add_argument('--seed', type=int,
                     default=1234, help='random seed')
-parser.add_argument('--cfg', type=str, default="/home/wtchen/wsp/wsp_uusic/blsamus/configs/samus_config.yaml",
+parser.add_argument('--cfg', type=str, default="/home/wtchen/wsp/wsp_uusic/blsamus/configs/samus_config.yaml", # samus_config   swin_tiny_patch4_window7_224_lite
                     metavar="FILE", help='path to config file', )
 parser.add_argument(
     "--opts",
@@ -74,7 +74,7 @@ args = parser.parse_args()
 
 config = get_config(args)
 args.num_classes = config.MODEL.NUM_CLASSES  # 确保这行存在
-# args.batch_size = 2
+args.batch_size = 2
 
 if __name__ == "__main__":
     if not args.deterministic:

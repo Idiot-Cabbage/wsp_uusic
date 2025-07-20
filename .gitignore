@@ -60,6 +60,20 @@ blsamusagain/networks/__pycache__/
 blsamusagain/pretrained_ckpt/swin_tiny_patch4_window7_224.pth
 blsamusagain/datasets/__pycache__/dataset.cpython-310.pyc
 blsamusagain/datasets/__pycache__/
-=======
->>>>>>> 6b8776631810d83e39ca47649ca245c6b43a8293
-blsamus/omni_train.py
+
+
+fjh_blsamus/networks/models/segment_anything/modeling/__pycache__/
+fjh_blsamus/networks/models/segment_anything/__pycache__/
+fjh_blsamus/networks/models/segment_anything_samus/__pycache__/
+fjh_blsamus/networks/models/segment_anything_samus/modeling/__pycache__/
+fjh_blsamus/networks/models/segment_anything_samus/utils/__pycache__/
+fjh_blsamus/networks/models/segment_anything/utils/__pycache__/
+fjh_blsamus/networks/models/__pycache__/
+fjh_blsamus/data/
+fjh_blsamus/exp_out/
+fjh_blsamus/__pycache__/
+fjh_blsamus/networks/__pycache__/
+fjh_blsamus/pretrained_ckpt/swin_tiny_patch4_window7_224.pth
+fjh_blsamus/datasets/__pycache__/dataset.cpython-310.pyc
+fjh_blsamus/datasets/__pycache__/
+
