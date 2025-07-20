@@ -10,8 +10,8 @@ current_dir = os.path.dirname(__file__)
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-from models.segment_anything_samus.build_sam_us import samus_model_registry
-from models.model_dict import get_classifier
+from modelsbak.segment_anything_samus.build_sam_us import samus_model_registry
+from modelsbak.model_dict import get_classifier
 
 class SAMUSAdapter(nn.Module):
     """
@@ -103,7 +103,7 @@ class SAMUSAdapter(nn.Module):
         cls_4_way = self.classifier_4_way(features)
         
         return seg_logits, cls_2_way, cls_4_way
-    
+    """
     # def forward(self, x):
     #     """
     #     前向传播，适配 baseline 的接口
@@ -260,6 +260,7 @@ class SAMUSAdapter(nn.Module):
     #     #printf"4分类输出形状: {cls_4_way.shape}")
         
     #     return seg_logits, cls_2_way, cls_4_way
+    
     
     def forward(self, x):
         """

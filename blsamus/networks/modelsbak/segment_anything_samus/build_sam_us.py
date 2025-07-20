@@ -4,6 +4,7 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import torch
 
 from functools import partial
@@ -114,6 +115,9 @@ def _build_samus(
     )
     samus.eval()
     if checkpoint is not None:
+        # 在open()之前添加
+        print(f"尝试打开检查点文件: {checkpoint}")
+        print(f"检查点文件是否存在: {os.path.exists(checkpoint)}")
         with open(checkpoint, "rb") as f:
             state_dict = torch.load(f)
         try:
