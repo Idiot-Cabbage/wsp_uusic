@@ -775,6 +775,7 @@ class SAMUSAdapter(nn.Module):
 
         # cls
         x = image_features
+        self.prompt=False
         if self.prompt:
             x, position_prompt, task_prompt, type_prompt, nature_prompt = x
         

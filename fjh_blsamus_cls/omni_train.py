@@ -98,7 +98,7 @@ if __name__ == "__main__":
     net = ModelClass(
         config,
         prompt=args.prompt,
-    ).cuda(int(args.gpu))
+    ).cuda()
     if args.pretrain_ckpt is not None:
         net.load_from_self(args.pretrain_ckpt)
     else:

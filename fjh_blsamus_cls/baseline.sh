@@ -4,7 +4,8 @@ python -m torch.distributed.launch \
     --nproc_per_node=1 \
     --master_port=12345 \
     omni_train.py \
-    --output_dir=exp_out/trial_3 \
+    --output_dir=exp_out/trial_1 \
+    --prompt \
     --base_lr=0.003 \
 
 
@@ -15,5 +16,6 @@ python -m torch.distributed.launch \
     --nproc_per_node=1 \
     --master_port=12345 \
     omni_test.py \
-    --output_dir=exp_out/trial_3 \
+    --output_dir=exp_out/trial_1 \
+    --prompt \
     --base_lr=0.003 \
