@@ -38,7 +38,7 @@ parser.add_argument('--test_save_dir', type=str, default='../predictions', help=
 parser.add_argument('--deterministic', type=int,  default=1, help='whether use deterministic training')
 parser.add_argument('--base_lr', type=float,  default=0.01, help='segmentation network learning rate')
 parser.add_argument('--seed', type=int, default=1234, help='random seed')
-parser.add_argument('--cfg', type=str, default="configs/swin_tiny_patch4_window7_224_lite.yaml",
+parser.add_argument('--cfg', type=str, default="configs/samus_config.yaml",
                     metavar="FILE", help='path to config file', )
 parser.add_argument(
     "--opts",
@@ -76,20 +76,23 @@ def inference(args, model, test_save_path=None):
             writer = csv.writer(csvfile)
             writer.writerow(['dataset', 'task', 'metric', 'time'])
 
+    # seg_test_set = [
+    #     "BUS-BRA",
+    #     "BUSIS",
+    #     "BUSI",
+    #     "CAMUS",
+    #     "DDTI",
+    #     "Fetal_HC",
+    #     "KidneyUS",
+    #     "private_Thyroid",
+    #     "private_Kidney",
+    #     "private_Fetal_Head",
+    #     "private_Cardiac",
+    #     "private_Breast_luminal",
+    #     "private_Breast",
+    # ]
     seg_test_set = [
-        "BUS-BRA",
-        "BUSIS",
-        "BUSI",
-        "CAMUS",
-        "DDTI",
-        "Fetal_HC",
-        "KidneyUS",
-        "private_Thyroid",
-        "private_Kidney",
-        "private_Fetal_Head",
-        "private_Cardiac",
-        "private_Breast_luminal",
-        "private_Breast",
+        "private_Thyroid"        
     ]
 
     for dataset_name in seg_test_set:
@@ -167,6 +170,7 @@ def inference(args, model, test_save_path=None):
     ]
 
     for dataset_name in cls_test_set:
+        break
         if dataset_name == "private_Breast_luminal":
             num_classes = 4
         else:

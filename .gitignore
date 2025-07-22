@@ -85,6 +85,7 @@ fjh_blsamus_cls/pretrained_ckpt/swin_tiny_patch4_window7_224.pth
 fjh_blsamus_cls/datasets/__pycache__/dataset.cpython-310.pyc
 fjh_blsamus_cls/datasets/__pycache__/
 
+<<<<<<< HEAD
 blsamusagain/networks/models/segment_anything/modeling/__pycache__/
 blsamusagain/networks/models/segment_anything/__pycache__/
 blsamusagain/networks/models/segment_anything_samus/__pycache__/
@@ -100,6 +101,8 @@ blsamusagain/pretrained_ckpt/swin_tiny_patch4_window7_224.pth
 blsamusagain/datasets/__pycache__/dataset.cpython-310.pyc
 blsamusagain/datasets/__pycache__/
 
+=======
+>>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
 
 
 

@@ -3,13 +3,21 @@ MODEL:
   NAME: SAMUS
   NUM_CLASSES: 2
   PRETRAINED: 'pretrained_ckpt/samus_vit_base.pth'
+<<<<<<< HEAD
   SAMUS_CHECKPOINT: '/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
+=======
+  SAMUS_CHECKPOINT: '/home/wtchen/wsp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
+>>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
   
 SAMUS:
   ENCODER_INPUT_SIZE: 224
   LOW_IMAGE_SIZE: 128
   VIT_NAME: 'vit_b'
+<<<<<<< HEAD
   SAM_CKPT: '/root/autodl-tmp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
+=======
+  SAM_CKPT: '/home/wtchen/wsp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
+>>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
 # configs/samus_config.yaml
 DATA:
   BATCH_SIZE: 4  # 每个GPU处理8个样本，总共16个样本

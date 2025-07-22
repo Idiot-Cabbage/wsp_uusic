@@ -25,8 +25,13 @@ from config import get_config
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
+<<<<<<< HEAD
                     default='/root/autodl-tmp/wsp_uusic/blsamus/data', help='root dir for data')
 parser.add_argument('--output_dir', type=str, default='/root/autodl-tmp/wsp_uusic/blsamus/exp_out/samus_debug', help='output dir')
+=======
+                    default='/home/wtchen/wsp/wsp_uusic/blsamus/data', help='root dir for data')
+parser.add_argument('--output_dir', type=str, default='/home/wtchen/wsp/wsp_uusic/blsamus/exp_out/samus_debug', help='output dir')
+>>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
 parser.add_argument('--max_epochs', type=int,
                     default=200, help='maximum epoch number to train')
 parser.add_argument('--batch_size', type=int,
@@ -40,7 +45,11 @@ parser.add_argument('--img_size', type=int,
                     default=224, help='input patch size of network input')
 parser.add_argument('--seed', type=int,
                     default=1234, help='random seed')
+<<<<<<< HEAD
 parser.add_argument('--cfg', type=str, default="/root/autodl-tmp/wsp_uusic/blsamus/configs/samus_config.yaml", # samus_config   swin_tiny_patch4_window7_224_lite
+=======
+parser.add_argument('--cfg', type=str, default="/home/wtchen/wsp/wsp_uusic/blsamus/configs/samus_config.yaml", # samus_config   swin_tiny_patch4_window7_224_lite
+>>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
                     metavar="FILE", help='path to config file', )
 parser.add_argument(
     "--opts",
@@ -74,7 +83,11 @@ args = parser.parse_args()
 
 config = get_config(args)
 args.num_classes = config.MODEL.NUM_CLASSES  # 确保这行存在
+<<<<<<< HEAD
 args.batch_size = 8
+=======
+args.batch_size = 1
+>>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
 args.gpu = '1'
 if __name__ == "__main__":
     if not args.deterministic:

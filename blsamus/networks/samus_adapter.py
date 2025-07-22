@@ -57,7 +57,11 @@ class SAMUSAdapter(nn.Module):
                 self.encoder_input_size = 224
                 self.low_image_size = 128
                 self.vit_name = 'vit_b'
+<<<<<<< HEAD
                 self.sam_ckpt = '/root/autodl-tmp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
+=======
+                self.sam_ckpt = '/home/wtchen/wsp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
+>>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
                 self.batch_size = 1
                 self.device = 'cuda'
                 

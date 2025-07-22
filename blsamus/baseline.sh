@@ -1,11 +1,14 @@
+<<<<<<< HEAD
 export CUDA_VISIBLE_DEVICES=0
+=======
+export CUDA_VISIBLE_DEVICES=1
+>>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
 python -m torch.distributed.launch \
     --use_env \
     --nproc_per_node=1 \
     --master_port=12345 \
     omni_train.py \
-    --output_dir=exp_out/trial_1 \
-    --prompt \
+    --output_dir=exp_out/trial_3 \
     --base_lr=0.003 \
 
 
@@ -16,6 +19,5 @@ python -m torch.distributed.launch \
     --nproc_per_node=1 \
     --master_port=12345 \
     omni_test.py \
-    --output_dir=exp_out/trial_1 \
-    --prompt \
+    --output_dir=exp_out/trial_3 \
     --base_lr=0.003 \
