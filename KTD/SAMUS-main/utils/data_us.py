@@ -292,7 +292,7 @@ class ImageToImage2D(Dataset):
         self.dataset_path = dataset_path
         self.one_hot_mask = one_hot_mask
         self.split = split
-        if  dataset_path.__contains__('baseline'):
+        if  dataset_path.__contains__('blsamus'):
             id_list_file = os.path.join(dataset_path, '{0}.txt'.format(split))
         else:
             id_list_file = os.path.join(dataset_path, 'MainPatient/{0}.txt'.format(split))
@@ -359,7 +359,7 @@ class ImageToImage2D(Dataset):
             label_path = os.path.join(self.dataset_path, 'label')
             image = cv2.imread(os.path.join(img_path, filename +'_'+id_.split('/')[3]+ '.png'), 0)
             mask = cv2.imread(os.path.join(label_path, filename +'_'+id_.split('/')[3]+'.png'), 0)
-        elif 'baseline' in self.dataset_path:
+        elif 'blsamus' in self.dataset_path:
             img_path = os.path.join(self.dataset_path, 'imgs')
             label_path = os.path.join(self.dataset_path, 'masks')
             image = cv2.imread(os.path.join(img_path, filename), 0)
@@ -369,7 +369,7 @@ class ImageToImage2D(Dataset):
             label_path = os.path.join(os.path.join(self.dataset_path, sub_path), 'label')
             image = cv2.imread(os.path.join(img_path, filename + '.jpg'), 0)
             mask = cv2.imread(os.path.join(label_path, filename + '.jpg'), 0)
-        if 'baseline' in self.dataset_path:
+        if 'blsamus' in self.dataset_path:
             classes = 2 
         else :    
             classes = self.class_dict[sub_path]
@@ -433,7 +433,7 @@ class ImageToImage2D(Dataset):
                 'class_id': class_id,
                 'class_label': class_label,
             }
-        elif 'baseline' in self.dataset_path:
+        elif 'blsamus' in self.dataset_path:
            return {
                 'image': image,
                 'label': mask,

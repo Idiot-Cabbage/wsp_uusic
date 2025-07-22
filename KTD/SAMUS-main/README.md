@@ -10,6 +10,10 @@ This repo is the official implementation for:\
 
 ## Installation
 Following [Segment Anything](https://github.com/facebookresearch/segment-anything), `python=3.8.16`, `pytorch=1.8.0`, and `torchvision=0.9.0` are used in SAMUS.
+#2025年7月22日
+ conda create -p /root/autodl-tmp/envs/SAMUS --clone base
+
+ conda activate /root/autodl-tmp/envs/SAMUS
 
 1. Clone the repository.
     ```

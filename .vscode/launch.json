@@ -1,15 +1,63 @@
+// {
+//     // 使用 IntelliSense 了解相关属性。 
+//     // 悬停以查看现有属性的描述。
+//     // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+//     "version": "0.2.0",
+//     "configurations": [
+//         {
+//             "name": "Python 调试程序: 当前文件",
+//             "type": "debugpy",
+//             "request": "launch",
+//             "program": "${file}",
+//             "cwd": "${workspaceFolder}",  // 确保这一行指向项目根目录
+//             "env": {
+//                 "PYTHONPATH": "${workspaceFolder}"
+//             },
+//             "console": "integratedTerminal"
+//         }
+//     ]
+// }
+
 {
-    // 使用 IntelliSense 了解相关属性。 
-    // 悬停以查看现有属性的描述。
-    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python 调试程序: 当前文件",
+            "name": "Distributed Training",
             "type": "debugpy",
             "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal"
+            "program": "/opt/minianaconda3/envs/uusic25/lib/python3.10/site-packages/torch/distributed/launch.py",
+            "args": [
+                "--use_env",
+                "--nproc_per_node=1",
+                "--master_port=12345",
+                "${workspaceFolder}/wsp_uusic/blsamus/omni_train.py",
+                "--output_dir=exp_out/trial_3",
+                // "--prompt",
+                "--base_lr=0.003"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "/root/autodl-tmp/wsp_uusic/blsamus" 
+        },
+          {
+            "name": "Debug samus",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/wsp_uusic/KTD/SAMUS-main/train.py",
+            "console": "integratedTerminal",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "1"
+            },
+            "args": [
+                // 这里可以添加你的命令行参数，例如：
+                // "--modelname=SAMUS",
+                // "--batch_size=8"
+            ],
+            "justMyCode": false,
+            "cwd": "/root/autodl-tmp/wsp_uusic" 
         }
     ]
 }

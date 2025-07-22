@@ -10,8 +10,8 @@ current_dir = os.path.dirname(__file__)
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-from models.segment_anything_samus.build_sam_us import samus_model_registry
-from models.model_dict import get_classifier
+from modelsbak.segment_anything_samus.build_sam_us import samus_model_registry
+from modelsbak.model_dict import get_classifier
 
 class SAMUSAdapter(nn.Module):
     """
@@ -57,7 +57,7 @@ class SAMUSAdapter(nn.Module):
                 self.encoder_input_size = 224
                 self.low_image_size = 128
                 self.vit_name = 'vit_b'
-                self.sam_ckpt = '../KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
+                self.sam_ckpt = '/root/autodl-tmp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
                 self.batch_size = 1
                 self.device = 'cuda'
                 
@@ -103,7 +103,7 @@ class SAMUSAdapter(nn.Module):
         cls_4_way = self.classifier_4_way(features)
         
         return seg_logits, cls_2_way, cls_4_way
-    
+    """
     # def forward(self, x):
     #     """
     #     前向传播，适配 baseline 的接口
@@ -261,6 +261,7 @@ class SAMUSAdapter(nn.Module):
         
     #     return seg_logits, cls_2_way, cls_4_way
     
+    
     def forward(self, x):
         """
         前向传播，支持分布式训练
@@ -275,7 +276,7 @@ class SAMUSAdapter(nn.Module):
         
         # 维度处理（保持原有逻辑）
         if image_batch.dim() == 5:
-            image_batch = image_batch[:, 0, :, :, :]
+            image_batch = image_batch.squeeze(1)
         elif image_batch.dim() == 3:
             if image_batch.shape[0] <= 3:
                 image_batch = image_batch.unsqueeze(0)
@@ -286,8 +287,8 @@ class SAMUSAdapter(nn.Module):
         # 确保是RGB格式
         if image_batch.shape[1] == 1:
             image_batch = image_batch.repeat(1, 3, 1, 1)
-        elif image_batch.shape[1] > 3:
-            image_batch = image_batch[:, :3, :, :]
+        elif image_batch.shape[1] > 3 and image_batch.shape[-1]==3:
+            image_batch = image_batch.permute(0,3,1,2)
         
         # 调整尺寸
         if image_batch.shape[2] != 224 or image_batch.shape[3] != 224:
@@ -297,54 +298,56 @@ class SAMUSAdapter(nn.Module):
         
         # 在分布式环境中，每个GPU处理更小的batch
         # 使用混合精度训练
-        with torch.cuda.amp.autocast():
-            try:
-                samus_output = self.samus_model(image_batch)
+        # with torch.cuda.amp.autocast():
+        try:
+            samus_output = self.samus_model(image_batch)
+            
+            if isinstance(samus_output, dict):
+                seg_features = samus_output.get('masks', list(samus_output.values())[0])
+            elif isinstance(samus_output, tuple):
+                seg_features = samus_output[0]
+            else:
+                seg_features = samus_output
                 
-                if isinstance(samus_output, dict):
-                    seg_features = samus_output.get('masks', list(samus_output.values())[0])
-                elif isinstance(samus_output, tuple):
-                    seg_features = samus_output[0]
-                else:
-                    seg_features = samus_output
-                    
-            except torch.cuda.OutOfMemoryError:
-                # 如果仍然内存不足，降级到逐张处理
-                print(f"Rank {torch.distributed.get_rank() if torch.distributed.is_initialized() else 0}: 内存不足，降级到逐张处理")
-                seg_features_list = []
-                for i in range(batch_size):
-                    single_img = image_batch[i:i+1]
-                    with torch.cuda.amp.autocast():
-                        single_output = self.samus_model(single_img)
-                        if isinstance(single_output, dict):
-                            single_features = single_output.get('masks', list(single_output.values())[0])
-                        elif isinstance(single_output, tuple):
-                            single_features = single_output[0]
-                        else:
-                            single_features = single_output
-                        seg_features_list.append(single_features)
-                    torch.cuda.empty_cache()
-                seg_features = torch.cat(seg_features_list, dim=0)
+        except torch.cuda.OutOfMemoryError:
+            # 如果仍然内存不足，降级到逐张处理
+            print(f"Rank {torch.distributed.get_rank() if torch.distributed.is_initialized() else 0}: 内存不足，降级到逐张处理")
+            seg_features_list = []
+            for i in range(batch_size):
+                single_img = image_batch[i:i+1]
+                with torch.cuda.amp.autocast():
+                    single_output = self.samus_model(single_img)
+                    if isinstance(single_output, dict):
+                        single_features = single_output.get('masks', list(single_output.values())[0])
+                    elif isinstance(single_output, tuple):
+                        single_features = single_output[0]
+                    else:
+                        single_features = single_output
+                    seg_features_list.append(single_features)
+                torch.cuda.empty_cache()
+            seg_features = torch.cat(seg_features_list, dim=0)
         
         # 继续处理...
         if seg_features.dim() == 3:
             seg_features = seg_features.unsqueeze(1)
         
-        if seg_features.shape[1] != 256:
-            if not hasattr(self, 'feature_adapter'):
-                self.feature_adapter = nn.Conv2d(seg_features.shape[1], 256, 1).to(seg_features.device)
-            seg_features = self.feature_adapter(seg_features)
+        # if seg_features.shape[1] != 256:
+        #     if not hasattr(self, 'feature_adapter'):
+        #         self.feature_adapter = nn.Conv2d(seg_features.shape[1], 256, 1).to(seg_features.device)
+        #     seg_features = self.feature_adapter(seg_features)
         
-        seg_logits = self.seg_head(seg_features)
-        
+        # seg_logits = self.seg_head(seg_features)
+        prob = torch.sigmoid(seg_features)
+        prob = torch.clamp(prob, 1e-7, 1-1e-7)
+        seg_logits = torch.log(torch.cat([1 - prob, prob], dim=1))
         # 分类任务
-        pooled_features = torch.nn.functional.adaptive_avg_pool2d(seg_features, (1, 1))
-        pooled_features = pooled_features.view(batch_size, -1)
+        # pooled_features = torch.nn.functional.adaptive_avg_pool2d(seg_features, (1, 1))
+        # pooled_features = pooled_features.view(batch_size, -1)
         
-        cls_2_way = self.classifier_2_way(pooled_features)
-        cls_4_way = self.classifier_4_way(pooled_features)
+        # cls_2_way = self.classifier_2_way(pooled_features)
+        # cls_4_way = self.classifier_4_way(pooled_features)
         
-        return seg_logits, cls_2_way, cls_4_way
+        return seg_logits,None,None
     def load_from(self, config):
         """加载预训练权重"""
         # 加载 SAMUS 权重

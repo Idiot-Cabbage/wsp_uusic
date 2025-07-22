@@ -219,8 +219,8 @@ class Config_OurDataset:
 class Config_UUSIC:
     datatype="private_Thyroid/"
     # datatype="Fetal_HC/"
-    data_path = "baseline/data/segmentation/"+ datatype
-    data_subpath = "baseline/data/segmentation/"+ datatype
+    data_path = "blsamus/data/segmentation/"+ datatype
+    data_subpath = "blsamus/data/segmentation/"+ datatype
     save_path = "./checkpoints/UUSIC/"+datatype
     result_path = "./result/UUSIC/"+datatype
     tensorboard_path = "./tensorboard/UUSIC/"+datatype

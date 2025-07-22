@@ -30,7 +30,7 @@ parser.add_argument('--output_dir', type=str, help='output dir')
 parser.add_argument('--max_epochs', type=int,
                     default=200, help='maximum epoch number to train')
 parser.add_argument('--batch_size', type=int,
-                    default=16, help='batch_size per gpu')
+                    default=8, help='batch_size per gpu')
 parser.add_argument('--gpu', type=str, default=None)
 parser.add_argument('--deterministic', type=int,  default=1,
                     help='whether use deterministic training')
@@ -40,7 +40,7 @@ parser.add_argument('--img_size', type=int,
                     default=224, help='input patch size of network input')
 parser.add_argument('--seed', type=int,
                     default=1234, help='random seed')
-parser.add_argument('--cfg', type=str, default="/home/wtchen/wsp/wsp_uusic/blsamus/configs/samus_config.yaml",
+parser.add_argument('--cfg', type=str, default="/root/autodl-tmp/wsp_uusic/blsamus/configs/samus_config.yaml",
                     metavar="FILE", help='path to config file', )
 parser.add_argument(
     "--opts",

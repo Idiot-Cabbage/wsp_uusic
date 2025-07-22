@@ -335,3 +335,12 @@ If you use this baseline or find our work helpful, please consider citing:
 
 # Please also add a citation for the UUSIC25 challenge paper once it is available.
 ```
+# 设置 LOCAL_RANK 环境变量
+export LOCAL_RANK=0
+export WORLD_SIZE=1
+export RANK=0
+export MASTER_ADDR=localhost
+export MASTER_PORT=12355
+
+# 然后运行训练
+nohup python omni_train.py --use_samus --batch_size 8 --max_epochs 200 --output_dir exp_out/test --gpu 0  > training.log 2>&1 &
