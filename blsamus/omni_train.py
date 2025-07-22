@@ -30,11 +30,7 @@ parser.add_argument('--output_dir', type=str, default='/home/wtchen/wsp/wsp_uusi
 parser.add_argument('--max_epochs', type=int,
                     default=200, help='maximum epoch number to train')
 parser.add_argument('--batch_size', type=int,
-<<<<<<< HEAD
                     default=8, help='batch_size per gpu')
-=======
-                    default=4, help='batch_size per gpu')
->>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
 parser.add_argument('--gpu', type=str, default=None)
 parser.add_argument('--deterministic', type=int,  default=1,
                     help='whether use deterministic training')
