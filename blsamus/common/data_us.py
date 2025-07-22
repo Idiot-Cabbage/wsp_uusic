@@ -21,14 +21,6 @@ from torchvision.transforms import InterpolationMode
 from einops import rearrange
 import random
 
-def list_add_prefix(txt_path, prefix_1, prefix_2):
-
-        with open(txt_path, 'r') as f:
-            lines = f.readlines()
-        if prefix_2 is not None:
-            return [os.path.join(prefix_1, prefix_2, line.strip('\n')) for line in lines]
-        else:
-            return [os.path.join(prefix_1, line.strip('\n')) for line in lines]
 
 def to_long_tensor(pic):
     # handle numpy array
@@ -294,22 +286,18 @@ class ImageToImage2D(Dataset):
             evaluates to False, torchvision.transforms.ToTensor will be used on both image and mask.
         one_hot_mask: bool, if True, returns the mask in one-hot encoded form.
     """
-    
-    
-    
 
     def __init__(self, dataset_path: str, split='train', joint_transform: Callable = None, img_size=256, prompt = "click2", class_id=1,
                  one_hot_mask: int = False) -> None:
         self.dataset_path = dataset_path
         self.one_hot_mask = one_hot_mask
         self.split = split
-        # if  dataset_path.__contains__('blsamus'):
-        #     id_list_file = os.path.join(dataset_path, '{0}.txt'.format(split))
-        # else:
-        #     id_list_file = os.path.join(dataset_path, 'MainPatient/{0}.txt'.format(split))
+        if  dataset_path.__contains__('blsamus'):
+            id_list_file = os.path.join(dataset_path, '{0}.txt'.format(split))
+        else:
+            id_list_file = os.path.join(dataset_path, 'MainPatient/{0}.txt'.format(split))
         
-        # self.ids = [id_.strip() for id_ in open(id_list_file)]
-        self.ids=[]
+        self.ids = [id_.strip() for id_ in open(id_list_file)]
         self.prompt = prompt
         self.img_size = img_size
         self.class_id = class_id
@@ -321,89 +309,78 @@ class ImageToImage2D(Dataset):
         else:
             to_tensor = T.ToTensor()
             self.joint_transform = lambda x, y: (to_tensor(x), to_tensor(y))
-        for dataset_name in os.listdir(os.path.join(dataset_path, "segmentation")):
-            # if dataset_name != "private_Thyroid":
-            #     continue
-            self.ids.extend(list_add_prefix(os.path.join(
-                dataset_path, "segmentation", dataset_name, split + ".txt"), dataset_name, "imgs"))
-            # self.subset_len.append(len(list_add_prefix(os.path.join(
-            #     base_dir, "segmentation", dataset_name, split + ".txt"), dataset_name, "imgs")))    
 
     def __len__(self):
         return len(self.ids)
 
     def __getitem__(self, i):
-        # id_ = self.ids[i]
+        id_ = self.ids[i]
         # print(self.dataset_path)
-        # if "test" in self.split:
-        #     if 'KTD' in self.dataset_path:
-        #         #1/KTD/212/1-7
-        #         class_id0,sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2], 2-int(id_.split('/')[3].split('-')[0])  # 用2减的原因是 1为异常 2为正常
-        #     elif 'BUS-BRA' in self.dataset_path:
-        #          sub_path, filename, class_label = '',id_, id_.split('_')[2].replace('.png', '')
-        #          class_id0=class_label
+        if "test" in self.split:
+            if 'KTD' in self.dataset_path:
+                #1/KTD/212/1-7
+                class_id0,sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2], 2-int(id_.split('/')[3].split('-')[0])  # 用2减的原因是 1为异常 2为正常
+            elif 'BUS-BRA' in self.dataset_path:
+                 sub_path, filename, class_label = '',id_, id_.split('_')[2].replace('.png', '')
+                 class_id0=class_label
                  
-        #          #220_1
-        #     elif 'private_Thyroid' in self.dataset_path:
-        #          sub_path, filename, class_label = '',id_, id_.split('_')[1].replace('.png', '')
-        #          class_id0=class_label   
-        #     elif 'Fetal_HC' in self.dataset_path:
-        #          sub_path, filename, class_label = '',id_, '0'
-        #          class_id0=class_label 
-        #     else:
-        #         sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], int(id_.split('/')[2])
-        #     # class_id0, sub_path, filename = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2]
-        #     # self.class_id = int(class_id0)
-        # else:
-        #     if 'KTD' in self.dataset_path:
-        #         class_id0, sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2], 2-int(id_.split('/')[3].split('-')[0])
-        #     #benign_178_0.png
-        #     elif 'BUS-BRA' in self.dataset_path:
-        #          sub_path, filename, class_label = '',id_, id_.split('_')[2].replace('.png', '')
-        #          class_id0=class_label
+                 #220_1
+            elif 'private_Thyroid' in self.dataset_path:
+                 sub_path, filename, class_label = '',id_, id_.split('_')[1].replace('.png', '')
+                 class_id0=class_label   
+            elif 'Fetal_HC' in self.dataset_path:
+                 sub_path, filename, class_label = '',id_, '0'
+                 class_id0=class_label 
+            else:
+                sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], int(id_.split('/')[2])
+            # class_id0, sub_path, filename = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2]
+            # self.class_id = int(class_id0)
+        else:
+            if 'KTD' in self.dataset_path:
+                class_id0, sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2], 2-int(id_.split('/')[3].split('-')[0])
+            #benign_178_0.png
+            elif 'BUS-BRA' in self.dataset_path:
+                 sub_path, filename, class_label = '',id_, id_.split('_')[2].replace('.png', '')
+                 class_id0=class_label
                  
-        #          #220_1
-        #     elif 'private_Thyroid' in self.dataset_path:
-        #          sub_path, filename, class_label = '',id_, id_.split('_')[1].replace('.png', '')
-        #          class_id0=class_label   
-        #     elif 'Fetal_HC' in self.dataset_path:
-        #          sub_path, filename, class_label = '',id_, '0'
-        #          class_id0=class_label      
+                 #220_1
+            elif 'private_Thyroid' in self.dataset_path:
+                 sub_path, filename, class_label = '',id_, id_.split('_')[1].replace('.png', '')
+                 class_id0=class_label   
+            elif 'Fetal_HC' in self.dataset_path:
+                 sub_path, filename, class_label = '',id_, '0'
+                 class_id0=class_label      
                   
             
-        #     else:
-        #         class_id0, sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2], int(id_.split('/')[3])
-        # if 'KTD' in self.dataset_path:
-        #     img_path = os.path.join(self.dataset_path, 'img')
-        #     label_path = os.path.join(self.dataset_path, 'label')
-        #     image = cv2.imread(os.path.join(img_path, filename +'_'+id_.split('/')[3]+ '.png'), 0)
-        #     mask = cv2.imread(os.path.join(label_path, filename +'_'+id_.split('/')[3]+'.png'), 0)
-        # elif 'blsamus' in self.dataset_path:
-        #     img_path = os.path.join(self.dataset_path, 'imgs')
-        #     label_path = os.path.join(self.dataset_path, 'masks')
-        #     image = cv2.imread(os.path.join(img_path, filename), 0)
-        #     mask = cv2.imread(os.path.join(label_path, filename), 0)  
-        # else:
-        #     img_path = os.path.join(os.path.join(self.dataset_path, sub_path), 'img')
-        #     label_path = os.path.join(os.path.join(self.dataset_path, sub_path), 'label')
-        #     image = cv2.imread(os.path.join(img_path, filename + '.jpg'), 0)
-        #     mask = cv2.imread(os.path.join(label_path, filename + '.jpg'), 0)
-        # if 'blsamus' in self.dataset_path:
-        #     classes = 2 
-        # else :    
-        #     classes = self.class_dict[sub_path]
-        # if classes == 2:
-        #     #mask[mask >1] = 1
-        #     if 'KTD' in self.dataset_path:
-        #         mask[mask > 1] = 1
-        #     else:
-        #         mask[mask < 128] = 0
-        #         mask[mask >= 128] = 1
-        
-        img_name = self.ids[i].strip('\n')
-        image = cv2.imread(os.path.join(self.dataset_path, "segmentation", img_name))
-        mask =cv2.imread(os.path.join(self.dataset_path, "segmentation", img_name).replace("imgs", "masks"))
-        filename=img_name
+            else:
+                class_id0, sub_path, filename, class_label = id_.split('/')[0], id_.split('/')[1], id_.split('/')[2], int(id_.split('/')[3])
+        if 'KTD' in self.dataset_path:
+            img_path = os.path.join(self.dataset_path, 'img')
+            label_path = os.path.join(self.dataset_path, 'label')
+            image = cv2.imread(os.path.join(img_path, filename +'_'+id_.split('/')[3]+ '.png'), 0)
+            mask = cv2.imread(os.path.join(label_path, filename +'_'+id_.split('/')[3]+'.png'), 0)
+        elif 'blsamus' in self.dataset_path:
+            img_path = os.path.join(self.dataset_path, 'imgs')
+            label_path = os.path.join(self.dataset_path, 'masks')
+            image = cv2.imread(os.path.join(img_path, filename), 0)
+            mask = cv2.imread(os.path.join(label_path, filename), 0)  
+        else:
+            img_path = os.path.join(os.path.join(self.dataset_path, sub_path), 'img')
+            label_path = os.path.join(os.path.join(self.dataset_path, sub_path), 'label')
+            image = cv2.imread(os.path.join(img_path, filename + '.jpg'), 0)
+            mask = cv2.imread(os.path.join(label_path, filename + '.jpg'), 0)
+        if 'blsamus' in self.dataset_path:
+            classes = 2 
+        else :    
+            classes = self.class_dict[sub_path]
+        if classes == 2:
+            #mask[mask >1] = 1
+            if 'KTD' in self.dataset_path:
+                mask[mask > 1] = 1
+            else:
+                mask[mask < 128] = 0
+                mask[mask >= 128] = 1
+
 
 
         # correct dimensions if needed
@@ -419,9 +396,9 @@ class ImageToImage2D(Dataset):
             point_label = 1
             if 'train' in self.split:
                 #class_id = randint(1, classes-1)
-                class_id = int(0)
+                class_id = int(class_id0)
             elif 'val' in self.split:
-                class_id = int(0)
+                class_id = int(class_id0)
             else:
                 class_id = self.class_id
             if 'train' in self.split:
@@ -444,7 +421,20 @@ class ImageToImage2D(Dataset):
         mask = mask.unsqueeze(0)
         # print(class_label)
 
-        return {
+        if 'KTD' in self.dataset_path:
+            return {
+                'image': image,
+                'label': mask,
+                'p_label': point_labels,
+                'pt': pt,
+                'bbox': bbox,
+                'low_mask': low_mask,
+                'image_name': filename +'_'+id_.split('/')[3] + '.png',
+                'class_id': class_id,
+                'class_label': class_label,
+            }
+        elif 'blsamus' in self.dataset_path:
+           return {
                 'image': image,
                 'label': mask,
                 # 'p_label': point_labels,
@@ -453,8 +443,20 @@ class ImageToImage2D(Dataset):
                 'low_mask': low_mask,
                 'image_name': filename,  # 去掉 .png
                 # 'class_id': class_id,
-                'class_label': 0
+                'class_label': class_label,
             }
+        else:
+            return {
+                'image': image,
+                'label': mask,
+                'p_label': point_labels,
+                'pt': pt,
+                'bbox': bbox,
+                'low_mask':low_mask,
+                'image_name': filename + '.jpg',
+                'class_id': class_id,
+                'class_label': class_label,
+                }
 
 class CropImageToImage2D(Dataset):
     """

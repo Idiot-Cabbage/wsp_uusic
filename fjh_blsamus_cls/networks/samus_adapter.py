@@ -486,7 +486,7 @@ class SAMUSAdapter(nn.Module):
 <<<<<<< HEAD
                 self.sam_ckpt = '/root/autodl-tmp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
 =======
-                self.sam_ckpt = '/home/wtchen/wsp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
+                self.sam_ckpt = '/root/autodl-tmp/wsp_uusic/KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth'
 >>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
                 self.batch_size = 1
                 self.device = 'cuda'

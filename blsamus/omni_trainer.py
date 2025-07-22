@@ -23,6 +23,9 @@ from datasets.omni_dataset import USdatasetOmni_cls, USdatasetOmni_seg
 from datasets.dataset import RandomGenerator, CenterCropGenerator
 from sklearn.metrics import roc_auc_score
 from utils import omni_seg_test
+from common.loss_functions.sam_loss import get_criterion,MaskDiceLoss
+
+
 
 
 def omni_train(args, model, snapshot_path):
@@ -142,9 +145,13 @@ def omni_train(args, model, snapshot_path):
 
     model.train()
 
-    seg_ce_loss = CrossEntropyLoss()
-    seg_dice_loss = DiceLoss()
+    # seg_ce_loss = CrossEntropyLoss()
+    # seg_dice_loss = DiceLoss()
     # cls_ce_loss = CrossEntropyLoss()
+    pos_weight =torch.ones([1]).cuda(device=device)*2
+    seg_ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    seg_dice_loss = MaskDiceLoss()
+    
 
     cls_ce_loss_2way = CrossEntropyLoss()
     cls_ce_loss_4way = CrossEntropyLoss()
@@ -162,7 +169,7 @@ def omni_train(args, model, snapshot_path):
     seg_iter_num = 0
     cls_iter_num = 0
     max_epoch = args.max_epochs
-    total_iterations = (len(trainloader_seg) + len(trainloader_cls))
+    total_iterations = (len(trainloader_seg))
     max_iterations = args.max_epochs * total_iterations
     logging.info("{} batch size. {} iterations per epoch. {} max iterations ".format(
         batch_size, total_iterations, max_iterations))
@@ -173,7 +180,7 @@ def omni_train(args, model, snapshot_path):
         iterator = tqdm(range(resume_epoch, max_epoch), ncols=70, disable=True)
     else:
         iterator = tqdm(range(resume_epoch, max_epoch), ncols=70, disable=False)
-
+    criterion = get_criterion(modelname=args.modelname, opt=args)
     for epoch_num in iterator:
         logging.info("\n epoch: {}".format(epoch_num))
         weighted_sampler_seg.set_epoch(epoch_num)
@@ -198,9 +205,14 @@ def omni_train(args, model, snapshot_path):
                 (x_seg, _, _) = model(image_batch)
 
             print(torch.isnan(x_seg).any(), torch.isinf(x_seg).any())
-            loss_ce = seg_ce_loss(x_seg, label_batch[:].long())
-            loss_dice = seg_dice_loss(x_seg, label_batch, softmax=True)
-            loss = 0.4 * loss_ce + 0.6 * loss_dice
+            # loss_ce = seg_ce_loss(x_seg, label_batch[:].long())
+            # loss_dice = seg_dice_loss(x_seg, label_batch, softmax=True)
+            # loss = 0.4 * loss_ce + 0.6 * loss_dice
+            loss_ce = seg_ce_loss(x_seg, label_batch[:].float().unsqueeze(1))
+            loss_dice = seg_dice_loss(x_seg, label_batch.float().unsqueeze(1),sigmoid=True)
+            loss =0.2*loss_ce + 6.8 * loss_dice
+
+            # loss = criterion(x_seg, label_batch)
 
             optimizer.zero_grad()
             loss.backward()
@@ -256,7 +268,7 @@ def omni_train(args, model, snapshot_path):
             #     ]
             
             seg_val_set = [
-                "private_Kidney",               
+                "private_Thyroid",               
                 ]
             seg_avg_performance = 0.0
 

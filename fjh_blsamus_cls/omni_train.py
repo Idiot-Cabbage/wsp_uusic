@@ -29,8 +29,8 @@ parser.add_argument('--root_path', type=str,
                     default='/root/autodl-tmp/wsp_uusic/blsamus/data', help='root dir for data')
 parser.add_argument('--output_dir', type=str, default='/root/autodl-tmp/wsp_uusic/blsamus/exp_out/samus_debug', help='output dir')
 =======
-                    default='/home/wtchen/wsp/wsp_uusic/blsamus/data', help='root dir for data')
-parser.add_argument('--output_dir', type=str, default='/home/wtchen/wsp/wsp_uusic/blsamus/exp_out/samus_debug', help='output dir')
+                    default='/root/autodl-tmp/wsp_uusic/blsamus/data', help='root dir for data')
+parser.add_argument('--output_dir', type=str, default='/root/autodl-tmp/wsp_uusic/blsamus/exp_out/samus_debug', help='output dir')
 >>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
 parser.add_argument('--max_epochs', type=int,
                     default=200, help='maximum epoch number to train')
@@ -48,7 +48,7 @@ parser.add_argument('--seed', type=int,
 <<<<<<< HEAD
 parser.add_argument('--cfg', type=str, default="/root/autodl-tmp/wsp_uusic/blsamus/configs/samus_config.yaml", # samus_config   swin_tiny_patch4_window7_224_lite
 =======
-parser.add_argument('--cfg', type=str, default="/home/wtchen/wsp/wsp_uusic/blsamus/configs/samus_config.yaml", # samus_config   swin_tiny_patch4_window7_224_lite
+parser.add_argument('--cfg', type=str, default="/root/autodl-tmp/wsp_uusic/blsamus/configs/samus_config.yaml", # samus_config   swin_tiny_patch4_window7_224_lite
 >>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
                     metavar="FILE", help='path to config file', )
 parser.add_argument(

@@ -24,9 +24,11 @@ from omni_trainer import omni_train
 from config import get_config
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--modelname', default='SAMUS', type=str, help='type of model, e.g., SAM, SAMFull, MedSAM, MSA, SAMed, SAMUS...')
+parser.add_argument('--device', type=str, default='cuda', help='cuda or cpu')
 parser.add_argument('--root_path', type=str,
-                    default='/home/wtchen/wsp/wsp_uusic/blsamus/data', help='root dir for data')
-parser.add_argument('--output_dir', type=str, default='/home/wtchen/wsp/wsp_uusic/blsamus/exp_out/samus_debug', help='output dir')
+                    default='/root/autodl-tmp/wsp_uusic/blsamus/data', help='root dir for data')
+parser.add_argument('--output_dir', type=str, default='/root/autodl-tmp/wsp_uusic/blsamus/exp_out/samus_debug', help='output dir')
 parser.add_argument('--max_epochs', type=int,
                     default=200, help='maximum epoch number to train')
 parser.add_argument('--batch_size', type=int,

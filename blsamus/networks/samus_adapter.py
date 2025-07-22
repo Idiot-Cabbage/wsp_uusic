@@ -337,9 +337,11 @@ class SAMUSAdapter(nn.Module):
         #     seg_features = self.feature_adapter(seg_features)
         
         # seg_logits = self.seg_head(seg_features)
-        prob = torch.sigmoid(seg_features)
-        prob = torch.clamp(prob, 1e-7, 1-1e-7)
-        seg_logits = torch.log(torch.cat([1 - prob, prob], dim=1))
+        # prob = torch.sigmoid(seg_features)
+        # prob = torch.clamp(prob, 1e-7, 1-1e-7)
+        # seg_logits = torch.log(torch.cat([1 - prob, prob], dim=1))
+        seg_logits=seg_features
+        
         # 分类任务
         # pooled_features = torch.nn.functional.adaptive_avg_pool2d(seg_features, (1, 1))
         # pooled_features = pooled_features.view(batch_size, -1)

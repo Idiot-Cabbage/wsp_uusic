@@ -25,6 +25,7 @@ from sklearn.metrics import roc_auc_score
 from utils import omni_seg_test
 
 
+
 def omni_train(args, model, snapshot_path):
 
     if args.gpu:

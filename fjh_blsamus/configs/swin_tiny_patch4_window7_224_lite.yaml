@@ -5,7 +5,7 @@ MODEL:
 <<<<<<< HEAD
   PRETRAIN_CKPT: "/root/autodl-tmp/wsp_uusic/blsamus/pretrained_ckpt/swin_tiny_patch4_window7_224.pth"
 =======
-  PRETRAIN_CKPT: "/home/wtchen/wsp/wsp_uusic/blsamus/pretrained_ckpt/swin_tiny_patch4_window7_224.pth"
+  PRETRAIN_CKPT: "/root/autodl-tmp/wsp_uusic/blsamus/pretrained_ckpt/swin_tiny_patch4_window7_224.pth"
 >>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
   SWIN:
     FINAL_UPSAMPLE: "expand_first"

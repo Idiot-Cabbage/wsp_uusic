@@ -217,10 +217,10 @@ class Config_OurDataset:
     visual = False
     modelname = "SAM"
 class Config_UUSIC:
-    datatype=""
+    datatype="private_Thyroid/"
     # datatype="Fetal_HC/"
-    data_path = "blsamus/data/"+ datatype
-    data_subpath = "blsamus/data/"+ datatype
+    data_path = "blsamus/data/segmentation/"+ datatype
+    data_subpath = "blsamus/data/segmentation/"+ datatype
     save_path = "./checkpoints/UUSIC/"+datatype
     result_path = "./result/UUSIC/"+datatype
     tensorboard_path = "./tensorboard/UUSIC/"+datatype
@@ -230,7 +230,7 @@ class Config_UUSIC:
 
     workers = 0                  # number of data loading workers (default: 8)
     epochs = 100                 # number of total epochs to run (default: 400)
-    batch_size = 1               # batch size (default: 4)
+    batch_size = 4               # batch size (default: 4)
     learning_rate = 1e-4         # initial learning rate (default: 0.001)
     momentum = 0.9               # momentum
     classes = 2                  # the number of classes (background + foreground)

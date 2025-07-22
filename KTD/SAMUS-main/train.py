@@ -114,7 +114,7 @@ def main():
     parser.add_argument('--task', default='UUSIC', help='task or dataset name')
     parser.add_argument('--vit_name', type=str, default='vit_b', help='select the vit model for the image encoder of sam')
     parser.add_argument('--sam_ckpt', type=str, default='KTD/SAMUS-main/checkpoints/sam_vit_b_01ec64.pth', help='Pretrained checkpoint of SAM')
-    parser.add_argument('--batch_size', type=int, default=8, help='batch_size per gpu') # SAMed is 12 bs with 2n_gpu and lr is 0.005
+    parser.add_argument('--batch_size', type=int, default=1, help='batch_size per gpu') # SAMed is 12 bs with 2n_gpu and lr is 0.005
     parser.add_argument('--n_gpu', type=int, default=1, help='total gpu')
     parser.add_argument('--device', type=str, default='cuda', help='cuda or cpu')
     parser.add_argument('--base_lr', type=float, default=0.0005, help='segmentation network learning rate, 0.005 for SAMed, 0.0001 for MSA') #0.0006
