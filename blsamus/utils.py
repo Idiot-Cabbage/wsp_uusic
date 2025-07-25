@@ -43,12 +43,33 @@ class DiceLoss(nn.Module):
             loss += dice * weight[i]
         return loss / self.n_classes
 
+def dice_coefficient(pred, gt, smooth=1e-5):
+    """ computational formula：
+        dice = 2TP/(FP + 2TP + FN)
+    """
+    N = gt.shape[0]
+    pred[pred >= 1] = 1
+    gt[gt >= 1] = 1
+    pred_flat = pred.reshape(N, -1)
+    gt_flat = gt.reshape(N, -1)
+    # if (pred.sum() + gt.sum()) == 0:
+    #     return 1
+    intersection = (pred_flat * gt_flat).sum(1)
+    unionset = pred_flat.sum(1) + gt_flat.sum(1)
+    dice = (2 * intersection + smooth) / (unionset + smooth)
+    return dice.sum() / N
 
 def calculate_metric_percase(pred, gt):
     pred[pred > 0] = 1
     gt[gt > 0] = 1
+    smooth=1e-5
+   
+    
+
+    
     if pred.sum() > 0 and gt.sum() > 0:
-        dice = metric.binary.dc(pred, gt)
+        # dice = metric.binary.dc(pred, gt)
+        dice=dice_coefficient(pred,gt)
         return dice, True
     elif pred.sum() > 0 and gt.sum() == 0:
         return 0, False
@@ -81,7 +102,8 @@ def omni_seg_test(image, label, net, classes, ClassStartIndex=1, test_save_path=
             seg_out = net(input)[0]
         out_label_back_transform = torch.cat(
             [seg_out[:, 0:1], seg_out[:, ClassStartIndex:ClassStartIndex+classes-1]], axis=1)
-        out = torch.argmax(torch.softmax(out_label_back_transform, dim=1), dim=1).squeeze(0)
+        # out = torch.argmax(torch.softmax(out_label_back_transform, dim=1), dim=1).squeeze(0)
+        out = out_label_back_transform[:,0,:,:]>0.5
         prediction = out.cpu().detach().numpy()
 
     metric_list = []

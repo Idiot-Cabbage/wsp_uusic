@@ -25,8 +25,13 @@ from config import get_config
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
+<<<<<<< HEAD
                     default='/root/autodl-tmp/wsp_uusic/blsamus/data', help='root dir for data')
 parser.add_argument('--output_dir', type=str, default='/root/autodl-tmp/wsp_uusic/blsamus/exp_out/samus_debug', help='output dir')
+=======
+                    default='/root/autodl-tmp/wsp_uusic/blsamus/data', help='root dir for data')
+parser.add_argument('--output_dir', type=str, default='/root/autodl-tmp/wsp_uusic/blsamus/exp_out/samus_debug', help='output dir')
+>>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
 parser.add_argument('--max_epochs', type=int,
                     default=200, help='maximum epoch number to train')
 parser.add_argument('--batch_size', type=int,
@@ -40,7 +45,11 @@ parser.add_argument('--img_size', type=int,
                     default=224, help='input patch size of network input')
 parser.add_argument('--seed', type=int,
                     default=1234, help='random seed')
+<<<<<<< HEAD
 parser.add_argument('--cfg', type=str, default="/root/autodl-tmp/wsp_uusic/blsamus/configs/samus_config.yaml",
+=======
+parser.add_argument('--cfg', type=str, default="/root/autodl-tmp/wsp_uusic/blsamus/configs/samus_config.yaml",
+>>>>>>> 8f14ae534c91fbc05719c7ba34bcb7cc1b607768
                     metavar="FILE", help='path to config file', )
 parser.add_argument(
     "--opts",

@@ -151,6 +151,7 @@ class Samus(nn.Module):
         # bbox: torch.Tensor=None, # b 4
     ) -> torch.Tensor:
         imge= self.image_encoder(imgs)
+        backbone_features = imge.flatten(start_dim=2).permute(0, 2, 1)
         # if len(pt[0].shape) == 3:
         #   se, de = self.prompt_encoder(            # se b 2 256, de b 256 32 32
         #                 points=pt,
@@ -167,7 +168,7 @@ class Samus(nn.Module):
                     )
         masks = F.interpolate(low_res_masks, (224, 224), mode="bilinear", align_corners=False)
         outputs = {"low_res_logits": low_res_masks, "masks": masks}
-        return outputs
+        return outputs,backbone_features
         # else:
         #   low_res_masks, masks = [], []
         #   for i in range(pt[0].shape[1]):

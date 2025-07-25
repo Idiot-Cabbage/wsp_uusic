@@ -13,7 +13,6 @@ SAMUS:
 # configs/samus_config.yaml
 DATA:
   BATCH_SIZE: 4  # 每个GPU处理8个样本，总共16个样本
-
 # TRAIN:
 #   BATCH_SIZE: 4
 

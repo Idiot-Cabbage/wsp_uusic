@@ -174,10 +174,13 @@ class USdatasetOmni_seg(Dataset):
         self.prompt = prompt
 
         for dataset_name in os.listdir(os.path.join(base_dir, "segmentation")):
+            if dataset_name != "BUS-BRA":
+                continue
             self.sample_list.extend(list_add_prefix(os.path.join(
                 base_dir, "segmentation", dataset_name, split + ".txt"), dataset_name, "imgs"))
             self.subset_len.append(len(list_add_prefix(os.path.join(
                 base_dir, "segmentation", dataset_name, split + ".txt"), dataset_name, "imgs")))
+           
 
     def __len__(self):
         return len(self.sample_list)

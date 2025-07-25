@@ -25,6 +25,7 @@ KTD/SAMUS-main/tensorboard/
 KTD/SAMUS-main/models/segment_anything_samus/modeling/__pycache__/
 KTD/SAMUS-main/models/segment_anything_samus/utils/__pycache__/
 KTD/SAMUS-main/utils/loss_functions/__pycache__/
+
 dataset_visualization/
 tensorboard/
 result/UUSIC/
@@ -85,6 +86,7 @@ fjh_blsamus_cls/pretrained_ckpt/swin_tiny_patch4_window7_224.pth
 fjh_blsamus_cls/datasets/__pycache__/dataset.cpython-310.pyc
 fjh_blsamus_cls/datasets/__pycache__/
 
+
 blsamusagain/networks/models/segment_anything/modeling/__pycache__/
 blsamusagain/networks/models/segment_anything/__pycache__/
 blsamusagain/networks/models/segment_anything_samus/__pycache__/
@@ -100,6 +102,21 @@ blsamusagain/pretrained_ckpt/swin_tiny_patch4_window7_224.pth
 blsamusagain/datasets/__pycache__/dataset.cpython-310.pyc
 blsamusagain/datasets/__pycache__/
 
+
+
+KTD/SAMUS-mainOri/dataset/
+KTD/SAMUS-mainOri/example_of_required_dataset_format/Ourdatasets/IMG/2.JPG
+KTD/SAMUS-mainOri/result/
+KTD/SAMUS-mainOri/models/segment_anything/modeling/__pycache__
+KTD/SAMUS-mainOri/models/segment_anything_samus/__pycache__/
+KTD/SAMUS-mainOri/utils/__pycache__
+KTD/SAMUS-mainOri/models/segment_anything/__pycache__/
+KTD/SAMUS-mainOri/checkpoints/
+KTD/SAMUS-mainOri/models/segment_anything/utils/__pycache__/
+KTD/SAMUS-mainOri/tensorboard/
+KTD/SAMUS-mainOri/models/segment_anything_samus/modeling/__pycache__/
+KTD/SAMUS-mainOri/models/segment_anything_samus/utils/__pycache__/
+KTD/SAMUS-mainOri/utils/loss_functions/__pycache__/
 
 
 

@@ -23,6 +23,9 @@ from datasets.omni_dataset import USdatasetOmni_cls, USdatasetOmni_seg
 from datasets.dataset import RandomGenerator, CenterCropGenerator
 from sklearn.metrics import roc_auc_score
 from utils import omni_seg_test
+from common.loss_functions.sam_loss import get_criterion,MaskDiceLoss
+
+
 
 
 def omni_train(args, model, snapshot_path):
@@ -33,20 +36,24 @@ def omni_train(args, model, snapshot_path):
     # 检查是否是分布式训练环境
     if "LOCAL_RANK" in os.environ:
         torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
+        device = torch.device("cuda", int(os.environ["LOCAL_RANK"]))
+        gpu_id = rank = int(os.environ["LOCAL_RANK"])
+        world_size = int(os.environ["WORLD_SIZE"])
+        torch.distributed.init_process_group(backend="nccl", init_method='env://', timeout=datetime.timedelta(seconds=7200))
+
+        if int(os.environ["LOCAL_RANK"]) == 0:
+            print('** GPU NUM ** : ', torch.cuda.device_count())
+            print('** WORLD SIZE ** : ', torch.distributed.get_world_size())
+        print(f"** DDP ** : Start running on rank {rank}.")
     else:
         # 单GPU训练，使用默认设备
-        torch.cuda.set_device(0)    
+        torch.cuda.set_device(1)   
+        world_size = 1 
+        gpu_id =1
+        rank = 0
+        device = torch.device("cuda",1)
 
-    torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
-    device = torch.device("cuda", int(os.environ["LOCAL_RANK"]))
-    gpu_id = rank = int(os.environ["LOCAL_RANK"])
-    world_size = int(os.environ["WORLD_SIZE"])
-    torch.distributed.init_process_group(backend="nccl", init_method='env://', timeout=datetime.timedelta(seconds=7200))
-
-    if int(os.environ["LOCAL_RANK"]) == 0:
-        print('** GPU NUM ** : ', torch.cuda.device_count())
-        print('** WORLD SIZE ** : ', torch.distributed.get_world_size())
-    print(f"** DDP ** : Start running on rank {rank}.")
+    
 
     logging.basicConfig(filename=snapshot_path + "/log.txt", level=logging.INFO,
                         format='[%(asctime)s.%(msecs)03d] %(message)s', datefmt='%H:%M:%S')
@@ -60,6 +67,7 @@ def omni_train(args, model, snapshot_path):
 
     db_train_seg = USdatasetOmni_seg(base_dir=args.root_path, split="train", transform=transforms.Compose(
         [RandomGenerator(output_size=[args.img_size, args.img_size])]), prompt=args.prompt)
+    print(db_train_seg)
 
     # weight_base = [1/4, 1/2, 2, 2, 1, 2, 2]
     weight_base = [
@@ -137,9 +145,13 @@ def omni_train(args, model, snapshot_path):
 
     model.train()
 
-    seg_ce_loss = CrossEntropyLoss()
-    seg_dice_loss = DiceLoss()
+    # seg_ce_loss = CrossEntropyLoss()
+    # seg_dice_loss = DiceLoss()
     # cls_ce_loss = CrossEntropyLoss()
+    pos_weight =torch.ones([1]).cuda(device=device)*2
+    seg_ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    seg_dice_loss = MaskDiceLoss()
+    
 
     cls_ce_loss_2way = CrossEntropyLoss()
     cls_ce_loss_4way = CrossEntropyLoss()
@@ -157,18 +169,18 @@ def omni_train(args, model, snapshot_path):
     seg_iter_num = 0
     cls_iter_num = 0
     max_epoch = args.max_epochs
-    total_iterations = (len(trainloader_seg) + len(trainloader_cls))
+    total_iterations = (len(trainloader_seg))
     max_iterations = args.max_epochs * total_iterations
     logging.info("{} batch size. {} iterations per epoch. {} max iterations ".format(
         batch_size, total_iterations, max_iterations))
     best_performance = 0.0
     best_epoch = 0
 
-    if int(os.environ["LOCAL_RANK"]) != 0:
+    if rank != 0:
         iterator = tqdm(range(resume_epoch, max_epoch), ncols=70, disable=True)
     else:
         iterator = tqdm(range(resume_epoch, max_epoch), ncols=70, disable=False)
-
+    criterion = get_criterion(modelname=args.modelname, opt=args)
     for epoch_num in iterator:
         logging.info("\n epoch: {}".format(epoch_num))
         weighted_sampler_seg.set_epoch(epoch_num)
@@ -189,11 +201,18 @@ def omni_train(args, model, snapshot_path):
                     1, 0]).float().to(device=device)
                 (x_seg, _, _) = model((image_batch, position_prompt, task_prompt, type_prompt, nature_prompt))
             else:
+                # print('进入')
                 (x_seg, _, _) = model(image_batch)
 
-            loss_ce = seg_ce_loss(x_seg, label_batch[:].long())
-            loss_dice = seg_dice_loss(x_seg, label_batch, softmax=True)
-            loss = 0.4 * loss_ce + 0.6 * loss_dice
+            # print(torch.isnan(x_seg).any(), torch.isinf(x_seg).any())
+            # loss_ce = seg_ce_loss(x_seg, label_batch[:].long())
+            # loss_dice = seg_dice_loss(x_seg, label_batch, softmax=True)
+            # loss = 0.4 * loss_ce + 0.6 * loss_dice
+            loss_ce = seg_ce_loss(x_seg, label_batch[:].float().unsqueeze(1))
+            loss_dice = seg_dice_loss(x_seg, label_batch.float().unsqueeze(1),sigmoid=True)
+            loss =0.2*loss_ce + 0.8 * loss_dice
+
+            # loss = criterion(x_seg, label_batch)
 
             optimizer.zero_grad()
             loss.backward()
@@ -212,61 +231,8 @@ def omni_train(args, model, snapshot_path):
                          (global_iter_num, seg_iter_num, loss.item()))
 
         torch.cuda.empty_cache()
-        for i_batch, sampled_batch in tqdm(enumerate(trainloader_cls)):
-            image_batch, label_batch = sampled_batch['image'], sampled_batch['label']
-            num_classes_batch = sampled_batch['num_classes']
-            image_batch, label_batch = image_batch.to(device=device), label_batch.to(device=device)
-            if args.prompt:
-                position_prompt = torch.tensor(np.array(sampled_batch['position_prompt'])).permute([
-                    1, 0]).float().to(device=device)
-                task_prompt = torch.tensor(np.array(sampled_batch['task_prompt'])).permute([
-                    1, 0]).float().to(device=device)
-                type_prompt = torch.tensor(np.array(sampled_batch['type_prompt'])).permute([
-                    1, 0]).float().to(device=device)
-                nature_prompt = torch.tensor(np.array(sampled_batch['nature_prompt'])).permute([
-                    1, 0]).float().to(device=device)
-                (_, x_cls_2, x_cls_4) = model((image_batch, position_prompt, task_prompt, type_prompt, nature_prompt))
-            else:
-                (_, x_cls_2, x_cls_4) = model(image_batch)
-
-            loss = 0.0
-            
-            mask_2_way = (num_classes_batch == 2)
-            mask_4_way = (num_classes_batch == 4)
-
-
-            if mask_2_way.any():
-                outputs_2_way = x_cls_2[mask_2_way]
-                labels_2_way = label_batch[mask_2_way]
-                loss_ce_2 = cls_ce_loss_2way(outputs_2_way, labels_2_way[:].long())
-                loss += loss_ce_2
-
-
-            if mask_4_way.any():
-                outputs_4_way = x_cls_4[mask_4_way]
-                labels_4_way = label_batch[mask_4_way]
-                loss_ce_4 = cls_ce_loss_4way(outputs_4_way, labels_4_way[:].long())
-                loss += loss_ce_4
-
-            # loss_ce = cls_ce_loss(x_cls, label_batch[:].long())
-            # loss = loss_ce
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            lr_ = base_lr * (1.0 - global_iter_num / max_iterations) ** 0.9
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = lr_
-
-            cls_iter_num = cls_iter_num + 1
-            global_iter_num = global_iter_num + 1
-
-            writer.add_scalar('info/lr', lr_, cls_iter_num)
-            writer.add_scalar('info/cls_loss', loss, cls_iter_num)
-
-            logging.info('global iteration %d and cls iteration %d : loss : %f' %
-                         (global_iter_num, cls_iter_num, loss.item()))
-
+        
+        
         dist.barrier()
 
         if int(os.environ["LOCAL_RANK"]) == 0:
@@ -286,20 +252,24 @@ def omni_train(args, model, snapshot_path):
             total_performance = 0.0
 
             seg_val_set = [
-                "BUS-BRA",
-                "BUSIS",
-                "BUSI",
-                "CAMUS",
-                "DDTI",
-                "Fetal_HC",
-                "KidneyUS",
-                "private_Thyroid",
-                "private_Kidney",
-                "private_Fetal_Head",
-                "private_Cardiac",
-                "private_Breast_luminal",
-                "private_Breast",
+                "BUS-BRA"
+                # "BUSIS",
+                # "BUSI",
+                # "CAMUS",
+                # "DDTI",
+                # "Fetal_HC",
+                # "KidneyUS",
+                # "private_Thyroid",
+                # "private_Kidney",
+                # "private_Fetal_Head",
+                # "private_Cardiac",
+                # "private_Breast_luminal",
+                # "private_Breast",
                 ]
+            
+            # seg_val_set = [
+            #     "BUS-BRA",               
+            #     ]
             seg_avg_performance = 0.0
 
             for dataset_name in seg_val_set:
@@ -342,7 +312,14 @@ def omni_train(args, model, snapshot_path):
                         if not metric_i[sample_index][1]:
                             count_matrix[i_batch*batch_size+sample_index, 0] = 0
                     metric_i = [element[0] for element in metric_i]
-                    metric_list += np.array(metric_i).sum()
+                    metric_list += np.array(metric_i).sum()*batch_size
+                    # zero_label_flag = False
+                    # for i in range(1, num_classes):
+                    #     if not metric_i[i-1][1]:
+                    #         count_matrix[i_batch, i-1] = 0
+                    #         zero_label_flag = True
+                    # metric_i = [element[0] for element in metric_i]
+                    # metric_list += np.array(metric_i)
 
                 metric_list = metric_list / (count_matrix.sum(axis=0) + 1e-6)
                 performance = np.mean(metric_list, axis=0)
@@ -367,78 +344,50 @@ def omni_train(args, model, snapshot_path):
                 ]
             cls_avg_performance = 0.0
 
-            for dataset_name in cls_val_set:
-                if dataset_name == "private_Breast_luminal":
-                    num_classes = 4
-                else:
-                    num_classes = 2
-                db_val = USdatasetCls(
-                    base_dir=os.path.join(args.root_path, "classification", dataset_name),
-                    split="val",
-                    list_dir=os.path.join(args.root_path, "classification", dataset_name),
-                    transform=CenterCropGenerator(output_size=[args.img_size, args.img_size]),
-                    prompt=args.prompt
-                )
+            # for dataset_name in cls_val_set:
+            #     if dataset_name == "private_Breast_luminal":
+            #         num_classes = 4
+            #     else:
+            #         num_classes = 2
+            #     db_val = USdatasetCls(
+            #         base_dir=os.path.join(args.root_path, "classification", dataset_name),
+            #         split="val",
+            #         list_dir=os.path.join(args.root_path, "classification", dataset_name),
+            #         transform=CenterCropGenerator(output_size=[args.img_size, args.img_size]),
+            #         prompt=args.prompt
+            #     )
 
-                val_loader = DataLoader(db_val, batch_size=batch_size, shuffle=False, num_workers=16)
-                logging.info("{} val iterations per epoch".format(len(val_loader)))
-                model.eval()
+            #     val_loader = DataLoader(db_val, batch_size=batch_size, shuffle=False, num_workers=16)
+            #     logging.info("{} val iterations per epoch".format(len(val_loader)))
+            #     model.eval()
 
-                label_list = []
-                prediction_prob_list = []
-                for i_batch, sampled_batch in tqdm(enumerate(val_loader)):
-                    image, label = sampled_batch["image"], sampled_batch["label"]
-                    if args.prompt:
-                        position_prompt = torch.tensor(
-                            np.array(sampled_batch['position_prompt'])).permute([1, 0]).float()
-                        task_prompt = torch.tensor(
-                            np.array([[0]*position_prompt.shape[0], [1]*position_prompt.shape[0]])).permute([1, 0]).float()
-                        type_prompt = torch.tensor(np.array(sampled_batch['type_prompt'])).permute([1, 0]).float()
-                        nature_prompt = torch.tensor(np.array(sampled_batch['nature_prompt'])).permute([1, 0]).float()
-                        with torch.no_grad():
-                            output = model((image.cuda(), position_prompt.cuda(), task_prompt.cuda(),
-                                           type_prompt.cuda(), nature_prompt.cuda()))
-                    else:
-                        with torch.no_grad():
-                            output = model(image.cuda())
-
-
-                    if num_classes == 4:
-                        logits = output[2]
-                    else:
-                        logits = output[1]
-
-                    output_prob = torch.softmax(logits, dim=0).data.cpu().numpy()
-
-                    label_list.append(label.numpy())
-                    prediction_prob_list.append(output_prob)
-
-                # label_list = np.expand_dims(np.concatenate(
-                #     (np.array(label_list[:-1]).flatten(), np.array(label_list[-1]).flatten())), axis=1).astype('uint8')
-                # label_list_OneHot = np.eye(num_classes)[label_list].squeeze(1)
-                # performance = roc_auc_score(label_list_OneHot, np.concatenate(
-                #     (np.array(prediction_prob_list[:-1]).reshape(-1, 2), prediction_prob_list[-1])), multi_class='ovo')
-                
+            #     label_list = []
+            #     prediction_prob_list = []
+            #     for i_batch, sampled_batch in tqdm(enumerate(val_loader)):
+            #         image, label = sampled_batch["image"], sampled_batch["label"]
+            #         if args.prompt:
+            #             position_prompt = torch.tensor(
+            #                 np.array(sampled_batch['position_prompt'])).permute([1, 0]).float()
+            #             task_prompt = torch.tensor(
+            #                 np.array([[0]*position_prompt.shape[0], [1]*position_prompt.shape[0]])).permute([1, 0]).float()
+            #             type_prompt = torch.tensor(np.array(sampled_batch['type_prompt'])).permute([1, 0]).float()
+            #             nature_prompt = torch.tensor(np.array(sampled_batch['nature_prompt'])).permute([1, 0]).float()
+            #             with torch.no_grad():
+            #                 output = model((image.cuda(), position_prompt.cuda(), task_prompt.cuda(),
+            #                                type_prompt.cuda(), nature_prompt.cuda()))
+            #         else:
+            #             with torch.no_grad():
+            #                 output = model(image.cuda())
 
 
-                label_list = np.expand_dims(np.concatenate(
-                    (np.array(label_list[:-1]).flatten(), np.array(label_list[-1]).flatten())), axis=1).astype('uint8')
-                label_list_OneHot = np.eye(num_classes)[label_list].squeeze(1)
-                
-                prediction_probs_reshaped = np.array(prediction_prob_list[:-1]).reshape(-1, num_classes)
-                all_prediction_probs = np.concatenate((prediction_probs_reshaped, prediction_prob_list[-1]))
+                 
 
-                performance = roc_auc_score(label_list_OneHot, all_prediction_probs, multi_class='ovo')
+           
+           
 
-                writer.add_scalar('info/val_cls_metric_{}'.format(dataset_name), performance, epoch_num)
 
-                cls_avg_performance += performance
 
-            cls_avg_performance = cls_avg_performance / (len(cls_val_set)+1e-6)
-            total_performance += cls_avg_performance
-            writer.add_scalar('info/val_metric_cls_Total', cls_avg_performance, epoch_num)
-
-            TotalAvgPerformance = total_performance/2
+            TotalAvgPerformance = total_performance
 
             logging.info('This epoch %d Validation performance: %f' % (epoch_num, TotalAvgPerformance))
             logging.info('But the best epoch is: %d and performance: %f' % (best_epoch, best_performance))
