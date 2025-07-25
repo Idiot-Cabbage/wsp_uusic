@@ -202,6 +202,7 @@ def omni_train(args, model, snapshot_path):
                 (x_seg, _, _) = model((image_batch, position_prompt, task_prompt, type_prompt, nature_prompt))
             else:
                 # print('进入')
+                # print('进入')
                 (x_seg, _, _) = model(image_batch)
 
             # print(torch.isnan(x_seg).any(), torch.isinf(x_seg).any())
@@ -251,6 +252,22 @@ def omni_train(args, model, snapshot_path):
             model.eval()
             total_performance = 0.0
 
+            # seg_val_set = [
+            #     "BUS-BRA",
+            #     "BUSIS",
+            #     "BUSI",
+            #     "CAMUS",
+            #     "DDTI",
+            #     "Fetal_HC",
+            #     "KidneyUS",
+            #     "private_Thyroid",
+            #     "private_Kidney",
+            #     "private_Fetal_Head",
+            #     "private_Cardiac",
+            #     "private_Breast_luminal",
+            #     "private_Breast",
+            #     ]
+            
             seg_val_set = [
                 "BUS-BRA"
                 # "BUSIS",

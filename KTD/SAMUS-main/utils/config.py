@@ -217,10 +217,10 @@ class Config_OurDataset:
     visual = False
     modelname = "SAM"
 class Config_UUSIC:
-    datatype="private_Thyroid/"
+    datatype=""
     # datatype="Fetal_HC/"
-    data_path = "blsamus/data/segmentation/"+ datatype
-    data_subpath = "blsamus/data/segmentation/"+ datatype
+    data_path = "blsamus/data/"+ datatype
+    data_subpath = "blsamus/data/"+ datatype
     save_path = "./checkpoints/UUSIC/"+datatype
     result_path = "./result/UUSIC/"+datatype
     tensorboard_path = "./tensorboard/UUSIC/"+datatype
