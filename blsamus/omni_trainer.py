@@ -251,37 +251,22 @@ def omni_train(args, model, snapshot_path):
 
             model.eval()
             total_performance = 0.0
-
-            # seg_val_set = [
-            #     "BUS-BRA",
-            #     "BUSIS",
-            #     "BUSI",
-            #     "CAMUS",
-            #     "DDTI",
-            #     "Fetal_HC",
-            #     "KidneyUS",
-            #     "private_Thyroid",
-            #     "private_Kidney",
-            #     "private_Fetal_Head",
-            #     "private_Cardiac",
-            #     "private_Breast_luminal",
-            #     "private_Breast",
-            #     ]
+         
             
             seg_val_set = [
-                "BUS-BRA"
-                # "BUSIS",
-                # "BUSI",
-                # "CAMUS",
-                # "DDTI",
-                # "Fetal_HC",
-                # "KidneyUS",
-                # "private_Thyroid",
-                # "private_Kidney",
-                # "private_Fetal_Head",
-                # "private_Cardiac",
-                # "private_Breast_luminal",
-                # "private_Breast",
+                "BUS-BRA",
+                "BUSIS",
+                "BUSI",
+                "CAMUS",
+                "DDTI",
+                "Fetal_HC",
+                "KidneyUS",
+                "private_Thyroid",
+                "private_Kidney",
+                "private_Fetal_Head",
+                "private_Cardiac",
+                "private_Breast_luminal",
+                "private_Breast",
                 ]
             
             # seg_val_set = [

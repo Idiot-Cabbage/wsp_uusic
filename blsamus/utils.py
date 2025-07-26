@@ -68,8 +68,8 @@ def calculate_metric_percase(pred, gt):
 
     
     if pred.sum() > 0 and gt.sum() > 0:
-        # dice = metric.binary.dc(pred, gt)
-        dice=dice_coefficient(pred,gt)
+        dice = metric.binary.dc(pred, gt)
+        # dice=dice_coefficient(pred,gt)
         return dice, True
     elif pred.sum() > 0 and gt.sum() == 0:
         return 0, False

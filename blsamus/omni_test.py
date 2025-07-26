@@ -76,24 +76,22 @@ def inference(args, model, test_save_path=None):
             writer = csv.writer(csvfile)
             writer.writerow(['dataset', 'task', 'metric', 'time'])
 
-    # seg_test_set = [
-    #     "BUS-BRA",
-    #     "BUSIS",
-    #     "BUSI",
-    #     "CAMUS",
-    #     "DDTI",
-    #     "Fetal_HC",
-    #     "KidneyUS",
-    #     "private_Thyroid",
-    #     "private_Kidney",
-    #     "private_Fetal_Head",
-    #     "private_Cardiac",
-    #     "private_Breast_luminal",
-    #     "private_Breast",
-    # ]
     seg_test_set = [
-        "BUS-BRA"        
+        "BUS-BRA",
+        "BUSIS",
+        "BUSI",
+        "CAMUS",
+        "DDTI",
+        "Fetal_HC",
+        "KidneyUS",
+        "private_Thyroid",
+        "private_Kidney",
+        "private_Fetal_Head",
+        "private_Cardiac",
+        "private_Breast_luminal",
+        "private_Breast",
     ]
+  
 
     for dataset_name in seg_test_set:
         num_classes = 2

@@ -74,7 +74,7 @@ args = parser.parse_args()
 
 config = get_config(args)
 args.num_classes = config.MODEL.NUM_CLASSES  # 确保这行存在
-args.batch_size = 8
+args.batch_size = 12
 args.gpu = '1'
 if __name__ == "__main__":
     if not args.deterministic:
