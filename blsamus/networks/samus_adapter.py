@@ -4,6 +4,7 @@ import sys
 import os
 from torch.functional import F
 import torch.utils.checkpoint as checkpoint
+import torchvision.models as models
 # 添加 SAMUS 模型路径
 # sys.path.append(os.path.join(os.path.dirname(__file__), '../../KTD/SAMUS-main'))
 # 添加当前目录到系统路径，确保能找到 models 目录
@@ -465,15 +466,40 @@ class SAMUSAdapter(nn.Module):
         if self.prompt:
             self.dec_prompt_mlp_cls2 = nn.Linear(8+2+2+3, embed_dim*4)
             self.dec_prompt_mlp_seg2_cls3 = nn.Linear(8+2+2+3, embed_dim*2)
-        self.norm_task_cls = nn.LayerNorm(embed_dim*2)
+        # self.norm_task_cls = nn.LayerNorm(embed_dim*2)
+        # # 使用简单的线性分类器代替ResNet
+        # self.layers_task_cls_head_2cls = nn.ModuleList([
+        #     nn.Linear(embed_dim*2, 2)
+        # ])
+        # self.layers_task_cls_head_4cls = nn.ModuleList([
+        #     nn.Linear(embed_dim*2, 4)
+        # ])
+        
+        # self.norm_task_cls = nn.LayerNorm(embed_dim*8)
         # 使用简单的线性分类器代替ResNet
-        self.layers_task_cls_head_2cls = nn.ModuleList([
-            nn.Linear(embed_dim*2, 2)
-        ])
-        self.layers_task_cls_head_4cls = nn.ModuleList([
-            nn.Linear(embed_dim*2, 4)
-        ])
-    
+        # self.layers_task_cls_head_2cls = nn.ModuleList([
+        #     nn.Linear(embed_dim*8, 2)
+        # ])
+        # self.layers_task_cls_head_4cls = nn.ModuleList([
+        #     nn.Linear(embed_dim*8, 4)
+        # ])
+        # 2分类头
+        # self.resnet_2cls = models.resnet18(num_classes=2)
+        # # 4分类头
+        # self.resnet_4cls = models.resnet18(num_classes=4)
+        # self.resnet_2cls = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+        # self.resnet_2cls.fc = nn.Linear(self.resnet_2cls.fc.in_features, 2)  # 替换最后一层为2类
+
+        # self.resnet_4cls = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+        # self.resnet_4cls.fc = nn.Linear(self.resnet_4cls.fc.in_features, 4)  # 替换最后一层为4类
+        
+        self.resnet_2cls = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        self.resnet_2cls.fc = nn.Linear(self.resnet_2cls.fc.in_features, 2)  # 替换最后一层为2类
+
+        self.resnet_4cls = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        self.resnet_4cls.fc = nn.Linear(self.resnet_4cls.fc.in_features, 4)  # 替换最后一层为4类
+        self.dropout = nn.Dropout(p=0.5)  # 在 __init__ 里添加
+
         ##############################################################################################
     def create_samus_args(self):
         """创建 SAMUS 所需的参数"""
@@ -530,162 +556,7 @@ class SAMUSAdapter(nn.Module):
         
         return seg_logits, cls_2_way, cls_4_way
     
-    # def forward(self, x):
-    #     """
-    #     前向传播，适配 baseline 的接口
-    #     """
-    #     # 处理输入，如果是tuple则只取图像部分
-    #     if isinstance(x, tuple):
-    #         image_batch = x[0]  # 第一个元素是图像
-    #         #printf"从tuple中提取图像，原始tuple长度: {len(x)}")
-    #     else:
-    #         image_batch = x
-        
-    #     # 详细的调试信息
-    #     #printf"输入图像维度: {image_batch.shape}")
-    #     #printf"输入图像类型: {type(image_batch)}")
-    #     #printf"输入图像数据类型: {image_batch.dtype}")
-        
-    #     batch_size = image_batch.shape[0]
-        
-    #     # 处理各种可能的输入维度
-    #     if image_batch.dim() == 2:
-    #         # 如果是2D (height, width)，添加batch和通道维度
-    #         image_batch = image_batch.unsqueeze(0).unsqueeze(0)
-    #         #printf"从2D转换为4D后: {image_batch.shape}")
-    #         batch_size = 1
-            
-    #     elif image_batch.dim() == 3:
-    #         # 如果是3D，可能是 (batch, height, width) 或 (channels, height, width)
-    #         if image_batch.shape[0] <= 3:  # 假设是 (channels, height, width)
-    #             image_batch = image_batch.unsqueeze(0)  # 添加batch维度
-    #             #printf"从3D (C,H,W) 转换为4D后: {image_batch.shape}")
-    #             batch_size = 1
-    #         else:  # 假设是 (batch, height, width)
-    #             image_batch = image_batch.unsqueeze(1)  # 添加通道维度
-    #             #printf"从3D (B,H,W) 转换为4D后: {image_batch.shape}")
-                
-    #     # elif image_batch.dim() == 4:
-    #     #     # 已经是4D，直接使用
-    #     #     #printf"输入已经是4D: {image_batch.shape}")
-            
-    #     elif image_batch.dim() == 5:
-    #         # 如果是5D，可能是 (batch, depth, channels, height, width)
-    #         # 取中间的切片或第一个切片
-    #         image_batch = image_batch[:, 0, :, :, :]  # 取第一个深度切片
-    #         #printf"从5D转换为4D后: {image_batch.shape}")
-            
-    #     else:
-    #         raise ValueError(f"无法处理{image_batch.dim()}维输入: {image_batch.shape}")
-        
-    #     # 确保图像是4维的 (batch, channels, height, width)
-    #     if image_batch.dim() != 4:
-    #         raise ValueError(f"处理后仍然不是4维: {image_batch.shape}")
-        
-    #     # 如果是单通道图像，转换为三通道（SAMUS需要RGB输入）
-    #     if image_batch.shape[1] == 1:
-    #         image_batch = image_batch.repeat(1, 3, 1, 1)
-    #         #printf"转换为三通道后: {image_batch.shape}")
-    #     elif image_batch.shape[1] > 3:
-    #         # 如果通道数超过3，只取前3个通道
-    #         image_batch = image_batch[:, :3, :, :]
-    #         #printf"截取前3个通道后: {image_batch.shape}")
-        
-    #     # 确保输入尺寸符合SAMUS要求（通常是224x224）
-    #     if image_batch.shape[2] != 224 or image_batch.shape[3] != 224:
-    #         image_batch = torch.nn.functional.interpolate(
-    #             image_batch, 
-    #             size=(224, 224), 
-    #             mode='bilinear', 
-    #             align_corners=False
-    #         )
-    #         #printf"调整尺寸后: {image_batch.shape}")
-        
-    #     # 使用SAMUS模型进行分割
-    #     # 使用SAMUS模型进行分割
-    #     try:
-    #         samus_output = self.samus_model(image_batch)
-    #         #printf"SAMUS输出类型: {type(samus_output)}")
-            
-    #         if isinstance(samus_output, dict):
-    #             #printf"SAMUS输出字典键: {list(samus_output.keys())}")
-    #             # for key, value in samus_output.items():
-    #             #     if hasattr(value, 'shape'):
-    #             #         #printf"字典键 '{key}' 的形状: {value.shape}")
-    #             #     else:
-    #             #         #printf"字典键 '{key}' 的类型: {type(value)}")
-                        
-    #             # 处理字典输出
-    #             possible_keys = ['masks', 'pred_masks', 'logits', 'features', 'low_res_masks', 'output']
-    #             seg_features = None
-                
-    #             for key in possible_keys:
-    #                 if key in samus_output:
-    #                     seg_features = samus_output[key]
-    #                     #printf"使用字典键 '{key}' 作为分割特征")
-    #                     break
-                
-    #             if seg_features is None:
-    #                 # 如果没有找到常见键，使用第一个tensor值
-    #                 for key, value in samus_output.items():
-    #                     if hasattr(value, 'shape') and len(value.shape) >= 3:
-    #                         seg_features = value
-    #                         #printf"使用字典键 '{key}' 作为分割特征（自动选择）")
-    #                         break
-                
-    #             if seg_features is None:
-    #                 raise ValueError(f"无法从SAMUS输出字典中找到合适的分割特征。可用键: {list(samus_output.keys())}")
-                    
-    #         elif isinstance(samus_output, tuple):
-    #             #printf"SAMUS输出tuple长度: {len(samus_output)}")
-    #             # for i, output in enumerate(samus_output):
-    #             #     if hasattr(output, 'shape'):
-    #             #         #printf"输出{i}形状: {output.shape}")
-    #             #     else:
-    #             #         #printf"输出{i}类型: {type(output)}")
-    #             seg_features = samus_output[0]
-    #         else:
-    #             # if hasattr(samus_output, 'shape'):
-    #             #     #printf"SAMUS输出形状: {samus_output.shape}")
-    #             # else:
-    #             #     #printf"SAMUS输出类型: {type(samus_output)}")
-    #             seg_features = samus_output
-                
-    #     except Exception as e:
-    #         print(f"SAMUS模型调用错误: {e}")
-    #         print(f"输入形状: {image_batch.shape}")
-    #         raise
-
-    #     #printf"处理后的分割特征形状: {seg_features.shape}")
-        
-      
-    #     if seg_features.dim() == 3:
-    #         seg_features = seg_features.unsqueeze(1)
-    #         #printf"添加通道维度后的特征形状: {seg_features.shape}")
-        
-    #     # 调整通道数以匹配seg_head的输入
-    #     if seg_features.shape[1] != 256:
-    #         if not hasattr(self, 'feature_adapter'):
-    #             self.feature_adapter = nn.Conv2d(seg_features.shape[1], 256, 1).to(seg_features.device)
-    #         seg_features = self.feature_adapter(seg_features)
-    #         #printf"适配后的特征形状: {seg_features.shape}")
-        
-    #     # 通过分割头生成最终分割输出
-    #     seg_logits = self.seg_head(seg_features)
-    #     #printf"分割输出形状: {seg_logits.shape}")
-        
-    #     # 分类任务
-    #     pooled_features = torch.nn.functional.adaptive_avg_pool2d(seg_features, (1, 1))
-    #     pooled_features = pooled_features.view(batch_size, -1)
-    #     #printf"池化特征形状: {pooled_features.shape}")
-
-    #     cls_2_way = self.classifier_2_way(pooled_features)
-    #     cls_4_way = self.classifier_4_way(pooled_features)
-        
-    #     #printf"2分类输出形状: {cls_2_way.shape}")
-    #     #printf"4分类输出形状: {cls_4_way.shape}")
-        
-    #     return seg_logits, cls_2_way, cls_4_way
+    
     
     def forward(self, x):
         """
@@ -767,45 +638,53 @@ class SAMUSAdapter(nn.Module):
         # seg_logits = torch.log(torch.cat([1 - prob, prob], dim=1))
         seg_logits  = seg_features
         # 分类任务
-        # pooled_features = torch.nn.functional.adaptive_avg_pool2d(seg_features, (1, 1))
-        # pooled_features = pooled_features.view(batch_size, -1)
-        
-        # cls_2_way = self.classifier_2_way(pooled_features)
-        # cls_4_way = self.classifier_4_way(pooled_features)
-
+       
 
         # cls
         x = image_features
-        self.prompt=False
-        if self.prompt:
-            x, position_prompt, task_prompt, type_prompt, nature_prompt = x
+        # self.prompt=False
+        # if self.prompt:
+        #     x, position_prompt, task_prompt, type_prompt, nature_prompt = x
         
-        for inx, layer_head in enumerate(self.layers_task_cls_up):
-            if inx == 0:
-                x_cls = layer_head(x)
-            else:
-                if self.prompt:
-                    if inx == 1:
-                        x_cls = layer_head(x_cls +
-                                           self.dec_prompt_mlp_cls2(torch.cat([position_prompt, task_prompt, type_prompt, nature_prompt], dim=1)).unsqueeze(1))
-                    if inx == 2:
-                        x_cls = layer_head(x_cls +
-                                           self.dec_prompt_mlp_seg2_cls3(torch.cat([position_prompt, task_prompt, type_prompt, nature_prompt], dim=1)).unsqueeze(1))
-                else:
-                    x_cls = layer_head(x_cls)
+        # for inx, layer_head in enumerate(self.layers_task_cls_up):
+        #     if inx == 0:
+        #         x_cls = layer_head(x)
+        #     else:
+        #         if self.prompt:
+        #             if inx == 1:
+        #                 x_cls = layer_head(x_cls +
+        #                                    self.dec_prompt_mlp_cls2(torch.cat([position_prompt, task_prompt, type_prompt, nature_prompt], dim=1)).unsqueeze(1))
+        #             if inx == 2:
+        #                 x_cls = layer_head(x_cls +
+        #                                    self.dec_prompt_mlp_seg2_cls3(torch.cat([position_prompt, task_prompt, type_prompt, nature_prompt], dim=1)).unsqueeze(1))
+        #         else:
+        #             x_cls = layer_head(x_cls)
 
-        x_cls = self.norm_task_cls(x_cls)
+        # x_cls = self.norm_task_cls(x_cls)
+        x_cls = x
 
+        
         B, _, _ = x_cls.shape
         x_cls = x_cls.transpose(1, 2)
         x_cls = F.adaptive_avg_pool1d(x_cls, 1).view(B, -1)
         
-        x_cls_2_way = self.layers_task_cls_head_2cls[0](x_cls)
-        x_cls_4_way = self.layers_task_cls_head_4cls[0](x_cls)
+        
+        # pooled_features = torch.nn.functional.adaptive_avg_pool2d(x, (1, 1))
+        # pooled_features = pooled_features.view(batch_size, -1)
+        mean = torch.tensor([0.485, 0.456, 0.406], device=image_batch.device).view(1, 3, 1, 1)
+        std = torch.tensor([0.229, 0.224, 0.225], device=image_batch.device).view(1, 3, 1, 1)
+        image_batch = (image_batch - mean) / std
+        image_batch = self.dropout(image_batch)
+        cls_2_way = self.resnet_2cls(image_batch)
+        cls_4_way = self.resnet_4cls(image_batch)
+
+        # x_cls_2_way = self.layers_task_cls_head_2cls[0](x_cls)
+        # x_cls_4_way = self.layers_task_cls_head_4cls[0](x_cls)
+        
 
 
         
-        return seg_logits,x_cls_2_way,x_cls_4_way
+        return seg_logits,cls_2_way,cls_4_way
     def load_from(self, config):
         """加载预训练权重"""
         # 加载 SAMUS 权重
