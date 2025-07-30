@@ -231,7 +231,7 @@ def omni_train(args, model, snapshot_path):
                 # print('进入')
                 (x_seg, _, _) = model(image_batch)
 
-            print(torch.isnan(x_seg).any(), torch.isinf(x_seg).any())
+            # print(torch.isnan(x_seg).any(), torch.isinf(x_seg).any())
             # loss_ce = seg_ce_loss(x_seg, label_batch[:].long())
             # loss_dice = seg_dice_loss(x_seg, label_batch, softmax=True)
             #   loss = 0.4 * loss_ce + 0.6 * loss_dice

@@ -134,6 +134,7 @@ blsamusMoe/networks/__pycache__/
 blsamusMoe/pretrained_ckpt/swin_tiny_patch4_window7_224.pth
 blsamusMoe/datasets/__pycache__/dataset.cpython-310.pyc
 blsamusMoe/datasets/__pycache__/
-
-
+blsamusMoe/networks/models/segment_anything_samus_moe/__pycache__/
+blsamusMoe/networks/models/segment_anything_samus_moe/__pycache__/
+blsamusMoe/networks/models/segment_anything_samus_moe/modeling/__pycache__/
 
