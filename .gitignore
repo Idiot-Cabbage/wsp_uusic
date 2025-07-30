@@ -120,4 +120,20 @@ KTD/SAMUS-mainOri/models/segment_anything_samus/utils/__pycache__/
 KTD/SAMUS-mainOri/utils/loss_functions/__pycache__/
 
 
+blsamusMoe/networks/models/segment_anything/modeling/__pycache__/
+blsamusMoe/networks/models/segment_anything/__pycache__/
+blsamusMoe/networks/models/segment_anything_samus/__pycache__/
+blsamusMoe/networks/models/segment_anything_samus/modeling/__pycache__/
+blsamusMoe/networks/models/segment_anything_samus/utils/__pycache__/
+blsamusMoe/networks/models/segment_anything/utils/__pycache__/
+blsamusMoe/networks/models/__pycache__/
+blsamusMoe/data/
+blsamusMoe/exp_out/
+blsamusMoe/__pycache__/
+blsamusMoe/networks/__pycache__/
+blsamusMoe/pretrained_ckpt/swin_tiny_patch4_window7_224.pth
+blsamusMoe/datasets/__pycache__/dataset.cpython-310.pyc
+blsamusMoe/datasets/__pycache__/
+
+
 

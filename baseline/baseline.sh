@@ -11,11 +11,11 @@ python -m torch.distributed.launch \
 
 export CUDA_VISIBLE_DEVICES=0
 
-python -m torch.distributed.launch \
-    --use_env \
-    --nproc_per_node=1 \
-    --master_port=12345 \
-    omni_test.py \
-    --output_dir=exp_out/trial_12_200 \
-    --prompt \
-    --base_lr=0.003 \
+# python -m torch.distributed.launch \
+#     --use_env \
+#     --nproc_per_node=1 \
+#     --master_port=12345 \
+#     omni_test.py \
+#     --output_dir=exp_out/trial_12_200 \
+#     --prompt \
+#     --base_lr=0.003 \
