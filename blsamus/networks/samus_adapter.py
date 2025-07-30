@@ -411,8 +411,7 @@ class SAMUSAdapter(nn.Module):
         ############################################################################################################
         img_size=224
         patch_size=16
-        in_chans=3
-        embed_dim=96
+        in_chans=3      
         encoder_depths=[2, 2, 2, 2]
         decoder_depths=[2, 2, 2, 2]
         num_heads=[2, 4, 8, 16]
@@ -429,6 +428,7 @@ class SAMUSAdapter(nn.Module):
         use_checkpoint=False
         embed_dim = 32
         self.layers_task_cls_up = nn.ModuleList()
+        self.layers_task_cls_head = nn.ModuleList()
 
         # self.patch_embed = PatchEmbed(
         #     img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,
@@ -466,6 +466,7 @@ class SAMUSAdapter(nn.Module):
         if self.prompt:
             self.dec_prompt_mlp_cls2 = nn.Linear(8+2+2+3, embed_dim*4)
             self.dec_prompt_mlp_seg2_cls3 = nn.Linear(8+2+2+3, embed_dim*2)
+        #region
         # self.norm_task_cls = nn.LayerNorm(embed_dim*2)
         # # 使用简单的线性分类器代替ResNet
         # self.layers_task_cls_head_2cls = nn.ModuleList([
@@ -493,12 +494,24 @@ class SAMUSAdapter(nn.Module):
         # self.resnet_4cls = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
         # self.resnet_4cls.fc = nn.Linear(self.resnet_4cls.fc.in_features, 4)  # 替换最后一层为4类
         
-        self.resnet_2cls = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
-        self.resnet_2cls.fc = nn.Linear(self.resnet_2cls.fc.in_features, 2)  # 替换最后一层为2类
+        # self.resnet_2cls = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        # self.resnet_2cls.fc = nn.Linear(self.resnet_2cls.fc.in_features, 2)  # 替换最后一层为2类
 
-        self.resnet_4cls = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
-        self.resnet_4cls.fc = nn.Linear(self.resnet_4cls.fc.in_features, 4)  # 替换最后一层为4类
-        self.dropout = nn.Dropout(p=0.5)  # 在 __init__ 里添加
+        # self.resnet_4cls = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        # self.resnet_4cls.fc = nn.Linear(self.resnet_4cls.fc.in_features, 4)  # 替换最后一层为4类
+        # self.dropout = nn.Dropout(p=0.5)  # 在 __init__ 里添加
+        #endregion
+         # 分类分支上采样层
+        self.norm_task_cls = norm_layer(embed_dim*2)  # 分类分支归一化
+        # 分类头
+        self.layers_task_cls_head_2cls = nn.ModuleList([
+            nn.Linear(embed_dim*2, 2)   # 二分类
+        ])
+        self.layers_task_cls_head_4cls = nn.ModuleList([
+            nn.Linear(embed_dim*2, 4)   # 四分类
+        ])
+        
+        
 
         ##############################################################################################
     def create_samus_args(self):
@@ -525,36 +538,6 @@ class SAMUSAdapter(nn.Module):
                 
         return ClassifierArgs(num_classes)
     
-    # def forward(self, x, prompt_info=None):
-        """
-        前向传播，适配 baseline 的接口
-        """
-        batch_size = x.shape[0]
-        
-        # 分割任务
-        seg_outputs = []
-        for i in range(batch_size):
-            # SAMUS 需要单张图像处理
-            single_img = x[i:i+1]
-            
-            # 使用 SAMUS 进行分割
-            with torch.no_grad():
-                # 这里需要根据 SAMUS 的具体接口调整
-                masks, _ = self.samus_model(single_img, multimask_output=False)
-                seg_outputs.append(masks)
-        
-        seg_logits = torch.cat(seg_outputs, dim=0)
-        seg_logits = self.seg_head(seg_logits)
-        
-        # 分类任务 - 使用全局平均池化的特征
-        features = torch.nn.functional.adaptive_avg_pool2d(seg_logits, (1, 1))
-        features = features.view(batch_size, -1)
-        
-        # 通过分类器
-        cls_2_way = self.classifier_2_way(features)
-        cls_4_way = self.classifier_4_way(features)
-        
-        return seg_logits, cls_2_way, cls_4_way
     
     
     
@@ -639,9 +622,12 @@ class SAMUSAdapter(nn.Module):
         seg_logits  = seg_features
         # 分类任务
        
-
+    
         # cls
         x = image_features
+        
+        
+        #region 
         # self.prompt=False
         # if self.prompt:
         #     x, position_prompt, task_prompt, type_prompt, nature_prompt = x
@@ -661,30 +647,49 @@ class SAMUSAdapter(nn.Module):
         #             x_cls = layer_head(x_cls)
 
         # x_cls = self.norm_task_cls(x_cls)
-        x_cls = x
+        # x_cls = x
 
         
-        B, _, _ = x_cls.shape
-        x_cls = x_cls.transpose(1, 2)
-        x_cls = F.adaptive_avg_pool1d(x_cls, 1).view(B, -1)
+        # B, _, _ = x_cls.shape
+        # x_cls = x_cls.transpose(1, 2)
+        # x_cls = F.adaptive_avg_pool1d(x_cls, 1).view(B, -1)
         
         
         # pooled_features = torch.nn.functional.adaptive_avg_pool2d(x, (1, 1))
         # pooled_features = pooled_features.view(batch_size, -1)
-        mean = torch.tensor([0.485, 0.456, 0.406], device=image_batch.device).view(1, 3, 1, 1)
-        std = torch.tensor([0.229, 0.224, 0.225], device=image_batch.device).view(1, 3, 1, 1)
-        image_batch = (image_batch - mean) / std
-        image_batch = self.dropout(image_batch)
-        cls_2_way = self.resnet_2cls(image_batch)
-        cls_4_way = self.resnet_4cls(image_batch)
+        # mean = torch.tensor([0.485, 0.456, 0.406], device=image_batch.device).view(1, 3, 1, 1)
+        # std = torch.tensor([0.229, 0.224, 0.225], device=image_batch.device).view(1, 3, 1, 1)
+        # image_batch = (image_batch - mean) / std
+        # image_batch = self.dropout(image_batch)
+        # cls_2_way = self.resnet_2cls(image_batch)
+        # cls_4_way = self.resnet_4cls(image_batch)
 
         # x_cls_2_way = self.layers_task_cls_head_2cls[0](x_cls)
         # x_cls_4_way = self.layers_task_cls_head_4cls[0](x_cls)
+        # 分类分支上采样
         
+        #endregion
+        for inx, layer_head in enumerate(self.layers_task_cls_up):
+            if inx == 0:
+                x_cls = layer_head(x)
+            else:               
+                x_cls = layer_head(x_cls)
+
+        x_cls = self.norm_task_cls(x_cls)
+
+        B, _, _ = x_cls.shape
+        x_cls = x_cls.transpose(1, 2)
+        x_cls = F.adaptive_avg_pool1d(x_cls, 1).view(B, -1)
+        
+        x_cls_2_way = self.layers_task_cls_head_2cls[0](x_cls)
+        x_cls_4_way = self.layers_task_cls_head_4cls[0](x_cls)
+        
+
+        return (seg_logits, x_cls_2_way, x_cls_4_way)     
 
 
         
-        return seg_logits,cls_2_way,cls_4_way
+        # return seg_logits,x_cls_2_way,x_cls_4_way
     def load_from(self, config):
         """加载预训练权重"""
         # 加载 SAMUS 权重

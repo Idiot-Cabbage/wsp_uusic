@@ -403,13 +403,13 @@ def omni_train(args, model, snapshot_path):
 
             cls_val_set = [
                 "Appendix",
-                # "BUS-BRA",
-                # "BUSI",
-                # "Fatty-Liver",
-                # "private_Liver",
-                # "private_Breast_luminal",
-                # "private_Breast",
-                # "private_Appendix",
+                "BUS-BRA",
+                "BUSI",
+                "Fatty-Liver",
+                "private_Liver",
+                "private_Breast_luminal",
+                "private_Breast",
+                "private_Appendix",
                 ]
             cls_avg_performance = 0.0
 

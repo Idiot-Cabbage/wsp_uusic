@@ -247,8 +247,8 @@ class USdatasetOmni_cls(Dataset):
         self.prompt = prompt
 
         for dataset_name in os.listdir(os.path.join(base_dir, "classification")):
-            if dataset_name!= "Appendix":
-                continue
+            # if dataset_name!= "Appendix":
+            #     continue
             self.sample_list.extend(list_add_prefix(os.path.join(
                 base_dir, "classification", dataset_name, split + ".txt"), dataset_name, None))
             self.subset_len.append(len(list_add_prefix(os.path.join(

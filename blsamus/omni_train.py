@@ -30,9 +30,9 @@ parser.add_argument('--root_path', type=str,
                     default='/root/autodl-tmp/wsp_uusic/blsamus/data', help='root dir for data')
 parser.add_argument('--output_dir', type=str, default='/root/autodl-tmp/wsp_uusic/blsamus/exp_out/samus_debug', help='output dir')
 parser.add_argument('--max_epochs', type=int,
-                    default=2, help='maximum epoch number to train')
+                    default=20, help='maximum epoch number to train')
 parser.add_argument('--batch_size', type=int,
-                    default=1, help='batch_size per gpu')
+                    default=12, help='batch_size per gpu')
 parser.add_argument('--gpu', type=str, default=None)
 parser.add_argument('--deterministic', type=int,  default=1,
                     help='whether use deterministic training')

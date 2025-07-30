@@ -335,7 +335,7 @@ def omni_train(args, model, snapshot_path):
                         if not metric_i[sample_index][1]:
                             count_matrix[i_batch*batch_size+sample_index, 0] = 0
                     metric_i = [element[0] for element in metric_i]
-                    metric_list += np.array(metric_i).sum()
+                    metric_list += np.array(metric_i).sum()*batch_size
 
                 metric_list = metric_list / (count_matrix.sum(axis=0) + 1e-6)
                 performance = np.mean(metric_list, axis=0)
