@@ -489,10 +489,10 @@ def omni_train(args, model, snapshot_path):
                 cls_avg_performance += performance
 
             cls_avg_performance = cls_avg_performance / (len(cls_val_set)+1e-6)
-            total_performance += cls_avg_performance/2
+            total_performance += cls_avg_performance
             writer.add_scalar('info/val_metric_cls_Total', cls_avg_performance, epoch_num)
 
-            TotalAvgPerformance = total_performance
+            TotalAvgPerformance = total_performance/2
 
             logging.info('This epoch %d Validation performance: %f' % (epoch_num, TotalAvgPerformance))
             logging.info('But the best epoch is: %d and performance: %f' % (best_epoch, best_performance))

@@ -27,7 +27,7 @@ else:
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
-                    default='data/', help='root dir for data')
+                    default='/root/autodl-tmp/wsp_uusic/blsamus/data/', help='root dir for data')
 parser.add_argument('--output_dir', type=str, help='output dir')
 parser.add_argument('--max_epochs', type=int, default=200, help='maximum epoch number to train')
 parser.add_argument('--batch_size', type=int, default=4,
@@ -94,7 +94,7 @@ def inference(args, model, test_save_path=None):
   
 
     for dataset_name in seg_test_set:
-        break
+        # break
         num_classes = 2
         db_test = USdatasetSeg(
             base_dir=os.path.join(args.root_path, "segmentation", dataset_name),
