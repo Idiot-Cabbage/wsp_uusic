@@ -82,7 +82,7 @@ class Model:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         class Args:
-            cfg = 'configs/swin_tiny_patch4_window7_224_lite.yaml' # 你的配置文件名
+            cfg = 'configs/samus_config.yaml' # 你的配置文件名
             img_size = 224
             prompt = True
 
@@ -105,34 +105,48 @@ class Model:
         self.network = ModelClass(config, prompt=args.prompt).to(self.device)
 
 
-        snapshot_path = 'exp_out/trial_2/best_model.pth'
+        snapshot_path = 'exp_out/trial_2025-7-31/best_model.pth'
         pretrained_dict = torch.load(snapshot_path, map_location=self.device)
         
 
-        if "module.swin.layers_task_cls_head_4cls.0.weight" in pretrained_dict:
-            # DDP v2 (state_dict in a dict)
-            if 'model' in pretrained_dict:
-                pretrained_dict = pretrained_dict['model']
+        # if "module.swin.layers_task_cls_head_4cls.0.weight" in pretrained_dict:
+        #     # DDP v2 (state_dict in a dict)
+        #     if 'model' in pretrained_dict:
+        #         pretrained_dict = pretrained_dict['model']
 
-            new_state_dict = {}
-            for k, v in pretrained_dict.items():
-                if k.startswith('module.'):
-                    new_state_dict[k[7:]] = v  # remove `module.`
-                else:
-                    new_state_dict[k] = v
-            self.network.load_state_dict(new_state_dict)
-        elif "swin.layers_task_cls_head_4cls.0.weight" in pretrained_dict:
-            # DDP v1
-            self.network.load_state_dict(pretrained_dict)
-        else:
-            # load from self (omni_test.py)
-            import copy
-            full_dict = copy.deepcopy(pretrained_dict)
-            for k, v in pretrained_dict.items():
-                if "module." not in k:
-                    full_dict["module."+k] = v
-                    del full_dict[k]
-            self.network.load_state_dict(full_dict)
+        #     new_state_dict = {}
+        #     for k, v in pretrained_dict.items():
+        #         if k.startswith('module.'):
+        #             new_state_dict[k[7:]] = v  # remove `module.`
+        #         else:
+        #             new_state_dict[k] = v
+        #     self.network.load_state_dict(new_state_dict)
+        # elif "swin.layers_task_cls_head_4cls.0.weight" in pretrained_dict:
+        #     # DDP v1
+        #     self.network.load_state_dict(pretrained_dict)
+        # else:
+        #     # load from self (omni_test.py)
+        #     import copy
+        #     full_dict = copy.deepcopy(pretrained_dict)
+        #     for k, v in pretrained_dict.items():
+        #         if "module." not in k:
+        #             full_dict["module."+k] = v
+        #             del full_dict[k]
+        #     self.network.load_state_dict(full_dict)
+       
+        if 'model' in pretrained_dict:
+            pretrained_dict = pretrained_dict['model']
+
+        new_state_dict = {}
+        for k, v in pretrained_dict.items():
+            if k.startswith('module.'):
+                new_state_dict[k[7:]] = v  # 去掉 'module.' 前缀
+            else:
+                new_state_dict[k] = v
+
+        self.network.load_state_dict(new_state_dict, strict=False)  # 加 strict=False 更稳妥
+    
+    
 
         self.network.eval()
         

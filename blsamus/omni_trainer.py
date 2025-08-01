@@ -194,7 +194,7 @@ def omni_train(args, model, snapshot_path):
     seg_iter_num = 0
     cls_iter_num = 0
     max_epoch = args.max_epochs
-    total_iterations = (len(trainloader_cls) )
+    total_iterations = (len(trainloader_cls) + len(trainloader_seg))
     max_iterations = args.max_epochs * total_iterations
     logging.info("{} batch size. {} iterations per epoch. {} max iterations ".format(
         batch_size, total_iterations, max_iterations))
@@ -213,7 +213,7 @@ def omni_train(args, model, snapshot_path):
 
         torch.cuda.empty_cache()
         for i_batch, sampled_batch in tqdm(enumerate(trainloader_seg)):
-            break
+            # break
            
             image_batch, label_batch = sampled_batch['image'], sampled_batch['label']
             image_batch, label_batch = image_batch.to(device=device), label_batch.to(device=device)
@@ -231,7 +231,7 @@ def omni_train(args, model, snapshot_path):
                 # print('进入')
                 (x_seg, _, _) = model(image_batch)
 
-            print(torch.isnan(x_seg).any(), torch.isinf(x_seg).any())
+            # print(torch.isnan(x_seg).any(), torch.isinf(x_seg).any())
             # loss_ce = seg_ce_loss(x_seg, label_batch[:].long())
             # loss_dice = seg_dice_loss(x_seg, label_batch, softmax=True)
             #   loss = 0.4 * loss_ce + 0.6 * loss_dice
@@ -348,7 +348,7 @@ def omni_train(args, model, snapshot_path):
             seg_avg_performance = 0.0
 
             for dataset_name in seg_val_set:
-                break
+                # break
                 num_classes = 2
                 db_val = USdatasetSeg(
                     base_dir=os.path.join(args.root_path,
@@ -492,7 +492,7 @@ def omni_train(args, model, snapshot_path):
             total_performance += cls_avg_performance
             writer.add_scalar('info/val_metric_cls_Total', cls_avg_performance, epoch_num)
 
-            TotalAvgPerformance = total_performance
+            TotalAvgPerformance = total_performance/2
 
             logging.info('This epoch %d Validation performance: %f' % (epoch_num, TotalAvgPerformance))
             logging.info('But the best epoch is: %d and performance: %f' % (best_epoch, best_performance))
