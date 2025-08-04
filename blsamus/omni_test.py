@@ -94,7 +94,7 @@ def inference(args, model, test_save_path=None):
   
 
     for dataset_name in seg_test_set:
-        break
+        # break
         num_classes = 2
         db_test = USdatasetSeg(
             base_dir=os.path.join(args.root_path, "segmentation", dataset_name),

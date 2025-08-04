@@ -84,7 +84,7 @@ class Model:
         class Args:
             cfg = 'configs/samus_config.yaml' # 你的配置文件名
             img_size = 224
-            prompt = True
+            prompt = False
 
             opts = None
             batch_size = None
@@ -144,7 +144,7 @@ class Model:
             else:
                 new_state_dict[k] = v
 
-        self.network.load_state_dict(new_state_dict, strict=False)  # 加 strict=False 更稳妥
+        self.network.load_state_dict(new_state_dict)  # 加 strict=False 更稳妥
     
     
 
@@ -209,11 +209,15 @@ class Model:
                 }
 
             elif task == 'segmentation':
-                seg_logits = outputs_tuple[0]
+                seg_out = outputs_tuple[0]
                 
-                seg_pred = torch.argmax(torch.softmax(seg_logits, dim=1), dim=1).squeeze(0)
-                binary_mask_224 = seg_pred.cpu().numpy().astype(np.uint8) * 255
-                
+                # seg_pred = torch.argmax(torch.softmax(seg_logits, dim=1), dim=1).squeeze(0)
+                out_label_back_transform = torch.cat(
+                    [seg_out[:, 0:1], seg_out[:, 1:2+1-1]], axis=1)
+                # out = torch.argmax(torch.softmax(out_label_back_transform, dim=1), dim=1).squeeze(0)
+                out = out_label_back_transform[:,0,:,:]>0.5
+                prediction = out.squeeze(0).cpu().detach().numpy()
+                binary_mask_224 = prediction.astype(np.uint8) * 255
                 resized_mask = cv2.resize(
                     binary_mask_224, 
                     original_size, 
