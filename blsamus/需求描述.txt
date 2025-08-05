@@ -40,5 +40,17 @@
     },
 
 
+--返回的json 增加字段：
+inference_time_sec 耗时
+memory_usage_mb  内存占用
+gpu_memory_usage_mb 显存占用，实际使用的
+gpu_memory_reserved_mb  进程分配显存
+
+
+--前端 允许用户旋转图片，缩放，剪裁图片？
+
+
+
+
 
 

@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware  # 关键导入
 import os
 import numpy as np
 from PIL import Image
@@ -12,6 +13,18 @@ from model import Model  # 假设 model.py 在同目录或已加入 sys.path
 app = FastAPI()
 model = Model()
 
+# 允许的源列表（根据需求修改）
+origins = [
+    "*",    # 前端开发服务器
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,      # 允许的源
+    allow_credentials=True,     # 是否支持凭据（如 Cookies）
+    allow_methods=["*"],        # 允许的 HTTP 方法（如 GET, POST）
+    allow_headers=["*"],        # 允许的请求头
+)
 
 SEGMENT_OUT_DIR = "api_out/segment"
 os.makedirs(SEGMENT_OUT_DIR, exist_ok=True)
@@ -153,4 +166,4 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=26009)
+    uvicorn.run(app, host="0.0.0.0", port=16009)

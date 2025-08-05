@@ -1,6 +1,6 @@
 import requests
 
-url = "http://localhost:26009/segment2/"
+url = "http://localhost:36009/segment/"
 
 # 构造和接口一致的入参
 data = {
