@@ -106,33 +106,9 @@ class Model:
 
 
         snapshot_path = 'exp_out/trial_2025-7-31/best_model.pth'
-        pretrained_dict = torch.load(snapshot_path, map_location=self.device)
-        
+        pretrained_dict = torch.load(snapshot_path, map_location=self.device)       
 
-        # if "module.swin.layers_task_cls_head_4cls.0.weight" in pretrained_dict:
-        #     # DDP v2 (state_dict in a dict)
-        #     if 'model' in pretrained_dict:
-        #         pretrained_dict = pretrained_dict['model']
-
-        #     new_state_dict = {}
-        #     for k, v in pretrained_dict.items():
-        #         if k.startswith('module.'):
-        #             new_state_dict[k[7:]] = v  # remove `module.`
-        #         else:
-        #             new_state_dict[k] = v
-        #     self.network.load_state_dict(new_state_dict)
-        # elif "swin.layers_task_cls_head_4cls.0.weight" in pretrained_dict:
-        #     # DDP v1
-        #     self.network.load_state_dict(pretrained_dict)
-        # else:
-        #     # load from self (omni_test.py)
-        #     import copy
-        #     full_dict = copy.deepcopy(pretrained_dict)
-        #     for k, v in pretrained_dict.items():
-        #         if "module." not in k:
-        #             full_dict["module."+k] = v
-        #             del full_dict[k]
-        #     self.network.load_state_dict(full_dict)
+       
        
         if 'model' in pretrained_dict:
             pretrained_dict = pretrained_dict['model']

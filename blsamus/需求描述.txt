@@ -1,0 +1,44 @@
+
+基本用例
+
+选择部位  "dataset_name": "Appendix", 
+ 选择任务 "task": "classification"  分类，分割
+调用接口得到结果
+
+
+入参json
+
+ {
+       "img_name": "cls_00000.jpg",
+       "img_path_relative": "classification/Appendix/imgs/cls_00000.jpg",
+       "img_size_bytes": 118306,
+       "img_dimensions": [
+           1008,
+           819
+       ],
+       "img_format": "jpg",
+       "task": "classification",
+       "dataset_name": "Appendix",
+       "organ": "Appendix",
+       "data_partition_group": "private_val",
+       "mask_name": null,
+       "mask_path_relative": null,
+       "seg_target_info": null,
+       "class_label_index": null,
+       "class_label_name": null
+   }
+
+
+ "classification/Breast_luminal/imgs/cls_00240.png": {
+        "probability": [
+            0.0017756620654836297,
+            0.0011936931405216455,
+            0.9829635620117188,
+            0.014067161828279495
+        ],
+        "prediction": 2
+    },
+
+
+
+
