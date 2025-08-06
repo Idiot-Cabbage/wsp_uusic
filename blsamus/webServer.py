@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware  # 关键导入
+from fastapi.middleware.cors import CORSMiddleware  # cors
+from fastapi.staticfiles import StaticFiles # 图片支持
 import os
 import numpy as np
 from PIL import Image
@@ -9,9 +10,13 @@ import cv2
 from pydantic import BaseModel
 
 from model import Model  # 假设 model.py 在同目录或已加入 sys.path
+import time
+import psutil
+import json
 
 app = FastAPI()
 model = Model()
+
 
 # 允许的源列表（根据需求修改）
 origins = [
@@ -26,8 +31,14 @@ app.add_middleware(
     allow_headers=["*"],        # 允许的请求头
 )
 
+app.mount("/static", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/data/segmentation"), name="static")
+app.mount("/staticout", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/api_out/segment"), name="staticout")
+
+
 SEGMENT_OUT_DIR = "api_out/segment"
 os.makedirs(SEGMENT_OUT_DIR, exist_ok=True)
+CLASSIFICATION_OUT_DIR = "api_out/classification"
+os.makedirs(CLASSIFICATION_OUT_DIR, exist_ok=True)
 
 #region
 #  {
@@ -111,6 +122,8 @@ async def segment_image(req: SegmentRequest):
     return JSONResponse(result)
 @app.post("/segment2/")
 async def segment_image2(req: SegmentRequest):
+    start_time = time.time()
+    process = psutil.Process(os.getpid())
     img_path = req.img_path_relative
     img = Image.open(img_path).convert('RGB')
     original_size = img.size
@@ -139,12 +152,24 @@ async def segment_image2(req: SegmentRequest):
         save_name = os.path.splitext(req.img_name)[0] + "_mask.png"
         save_path = os.path.abspath(os.path.join(SEGMENT_OUT_DIR, save_name))
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        gpu_memory_mb = round(torch.cuda.memory_allocated() / 1024 / 1024, 2)
+        gpu_memory_reserved_mb= round(torch.cuda.memory_reserved() / 1024 / 1024, 2)
+        timspan=round(time.time() - start_time, 4)
         mask_img.save(save_path)
-
         result = req.dict()
         result["mask_name"] = save_name
         result["mask_path_relative"] = os.path.relpath(save_path, start=os.getcwd())
         result["mask_path_absolute"] = save_path
+        result["inference_time_sec"] = timspan
+        result["memory_usage_mb"] = round(process.memory_info().rss / 1024 / 1024, 2)
+        result["gpu_memory_usage_mb"] = gpu_memory_mb
+        result["gpu_memory_reserved_mb"] = gpu_memory_reserved_mb
+        json_name = os.path.splitext(req.img_name)[0] + ".json"
+        json_path = os.path.abspath(os.path.join(SEGMENT_OUT_DIR, json_name))
+        os.makedirs(os.path.dirname(json_path), exist_ok=True)
+        with open(json_path, "w") as f:
+            json.dump(result, f, indent=4, ensure_ascii=False)
+        result["json_path"] = json_path
         return JSONResponse(result)
 
     elif req.task == "classification":
@@ -152,9 +177,21 @@ async def segment_image2(req: SegmentRequest):
         logits = outputs_tuple[1]
         probabilities = torch.softmax(logits, dim=1).cpu().numpy().flatten()
         prediction = int(np.argmax(probabilities))
+        gpu_memory_mb = round(torch.cuda.memory_allocated() / 1024 / 1024, 2)
+        gpu_memory_reserved_mb= round(torch.cuda.memory_reserved() / 1024 / 1024, 2)
         result = req.dict()
         result["probability"] = probabilities.tolist()
         result["prediction"] = prediction
+        result["inference_time_sec"] = round(time.time() - start_time, 4)
+        result["memory_usage_mb"] = round(process.memory_info().rss / 1024 / 1024, 2)
+        result["gpu_memory_usage_mb"] = gpu_memory_mb
+        result["gpu_memory_reserved_mb"] = gpu_memory_reserved_mb
+        json_name = os.path.splitext(req.img_name)[0] + ".json"
+        json_path = os.path.abspath(os.path.join(CLASSIFICATION_OUT_DIR, json_name))
+        os.makedirs(os.path.dirname(json_path), exist_ok=True)
+        with open(json_path, "w") as f:
+            json.dump(result, f, indent=4, ensure_ascii=False)
+        result["json_path"] = json_path
         return JSONResponse(result)
 
     else:
@@ -166,4 +203,4 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=16009)
+    uvicorn.run(app, host="0.0.0.0", port=16019)

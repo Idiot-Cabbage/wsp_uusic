@@ -41,6 +41,26 @@ os.makedirs(CLASSIFICATION_OUT_DIR, exist_ok=True)
 #         "class_label_name": null
 #     },
 
+    # {
+    #     "img_name": "normal_0.png",
+    #     "img_path_relative": "classification/Appendix/0/normal_0.png",
+    #     "img_size_bytes": 197183,
+    #     "img_dimensions": [
+    #         716,
+    #         537
+    #     ],
+    #     "img_format": "png",
+    #     "task": "classification",
+    #     "dataset_name": "Appendix",
+    #     "organ": "Appendix",
+    #     "data_partition_group": "public_all",
+    #     "mask_name": null,
+    #     "mask_path_relative": null,
+    #     "seg_target_info": null,
+    #     "class_label_index": 0,
+    #     "class_label_name": "no appendicitis"
+    # },
+
 #endregion
 
 class SegmentRequest(BaseModel):
@@ -137,6 +157,67 @@ async def segment_image(req: SegmentRequest):
 
     else:
         return JSONResponse({"error": "不支持的task类型"}, status_code=400)
+    
+import random
+
+from fastapi import Query
+
+@app.get("/random_sample/")
+def random_sample(
+    task: str = Query(..., description="任务类型，如 segmentation 或 classification"),
+    dataset_name: str = Query(..., description="数据集名称，如 KidneyUS、Appendix 等")
+):
+    # 拼接根路径
+    if task == "segmentation":
+        base_dir = f"segmentation/private_{dataset_name}/imgs"
+    elif task == "classification":
+        base_dir = f"classification/private_{dataset_name}"
+    else:
+        return JSONResponse({"error": "不支持的task类型"}, status_code=400)
+
+    # 检查路径是否存在
+    if not os.path.exists(base_dir):
+        return JSONResponse({"error": f"路径不存在: {base_dir}"}, status_code=404)
+
+    # 随机选择一个子文件夹（如果有）
+    subfolders = [f for f in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, f))]
+    if subfolders:
+        chosen_folder = random.choice(subfolders)
+        folder_path = os.path.join(base_dir, chosen_folder)
+    else:
+        folder_path = base_dir
+
+    # 随机选择一个图片文件
+    img_files = [f for f in os.listdir(folder_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+    if not img_files:
+        return JSONResponse({"error": "未找到图片文件"}, status_code=404)
+    chosen_img = random.choice(img_files)
+    img_path = os.path.join(folder_path, chosen_img)
+
+    # 获取图片信息
+    img = Image.open(img_path)
+    img_size_bytes = os.path.getsize(img_path)
+    img_dimensions = list(img.size)
+    img_format = img.format.lower() if img.format else os.path.splitext(chosen_img)[1][1:]
+
+    # 构造返回信息
+    result = {
+        "img_name": chosen_img,
+        "img_path_relative": img_path,
+        "img_size_bytes": img_size_bytes,
+        "img_dimensions": img_dimensions,
+        "img_format": img_format,
+        "task": task,
+        "dataset_name": dataset_name,
+        "organ": dataset_name,
+        "data_partition_group": "public_all",
+        "mask_name": None,
+        "mask_path_relative": None,
+        "seg_target_info": None,
+        "class_label_index": None,
+        "class_label_name": None
+    }
+    return JSONResponse(result)    
 
 @app.get("/")
 def read_root():
