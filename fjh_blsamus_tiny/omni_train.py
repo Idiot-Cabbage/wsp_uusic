@@ -28,9 +28,9 @@ parser.add_argument('--root_path', type=str,
                     default='/root/autodl-tmp/wsp_uusic/blsamus/data', help='root dir for data')
 parser.add_argument('--output_dir', type=str, default='/root/autodl-tmp/wsp_uusic/blsamus/exp_out/samus_debug_fjh', help='output dir')
 parser.add_argument('--max_epochs', type=int,
-                    default=200, help='maximum epoch number to train')
+                    default=2, help='maximum epoch number to train')
 parser.add_argument('--batch_size', type=int,
-                    default=4, help='batch_size per gpu')
+                    default=40, help='batch_size per gpu')
 parser.add_argument('--gpu', type=str, default=None)
 parser.add_argument('--deterministic', type=int,  default=1,
                     help='whether use deterministic training')
@@ -74,7 +74,7 @@ args = parser.parse_args()
 
 config = get_config(args)
 args.num_classes = config.MODEL.NUM_CLASSES  # 确保这行存在
-args.batch_size = 4
+# args.batch_size = 4
 # args.gpu = '1'
 if __name__ == "__main__":
     if not args.deterministic:

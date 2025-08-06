@@ -27,7 +27,7 @@ else:
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root_path', type=str,
-                    default='data/', help='root dir for data')
+                    default='../blsamus/data/', help='root dir for data')
 parser.add_argument('--output_dir', type=str, help='output dir')
 parser.add_argument('--max_epochs', type=int, default=200, help='maximum epoch number to train')
 parser.add_argument('--batch_size', type=int, default=4,
