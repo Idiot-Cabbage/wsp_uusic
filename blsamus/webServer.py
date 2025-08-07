@@ -31,10 +31,8 @@ app.add_middleware(
     allow_headers=["*"],        # 允许的请求头
 )
 
-app.mount("/staticseg", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/data/segmentation"), name="staticseg")
-app.mount("/staticclass", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/data/classification"), name="staticclass")
-app.mount("/staticoutseg", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/api_out/segment"), name="staticoutseg")
-app.mount("/staticoutclass", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/api_out/classification"), name="staticoutclass")
+app.mount("/static", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/data"), name="static")
+app.mount("/staticout", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/api_out"), name="staticout")
 
 
 SEGMENT_OUT_DIR = "api_out/segment"
@@ -124,6 +122,7 @@ async def segment_image(req: SegmentRequest):
     return JSONResponse(result)
 @app.post("/segment2/")
 async def segment_image2(req: SegmentRequest):
+    
     start_time = time.time()
     process = psutil.Process(os.getpid())
     img_path = req.img_path_relative
@@ -176,7 +175,12 @@ async def segment_image2(req: SegmentRequest):
 
     elif req.task == "classification":
         # 假设二分类
-        logits = outputs_tuple[1]
+        if req.dataset_name == "private_Breast_luminal":
+            # num_classes = 4
+            logits = outputs_tuple[2]
+        else:
+            # num_classes = 2
+            logits = outputs_tuple[1]
         probabilities = torch.softmax(logits, dim=1).cpu().numpy().flatten()
         prediction = int(np.argmax(probabilities))
         gpu_memory_mb = round(torch.cuda.memory_allocated() / 1024 / 1024, 2)

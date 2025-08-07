@@ -277,9 +277,9 @@ def omni_train(args, model, snapshot_path):
                     1, 0]).float().to(device=device)
                 nature_prompt = torch.tensor(np.array(sampled_batch['nature_prompt'])).permute([
                     1, 0]).float().to(device=device)
-                (_, x_cls_2, x_cls_4) = model((image_batch, position_prompt, task_prompt, type_prompt, nature_prompt))
+                (_, x_cls_2, x_cls_4,_) = model((image_batch, position_prompt, task_prompt, type_prompt, nature_prompt))
             else:
-                (_, x_cls_2, x_cls_4) = model(image_batch)
+                (_, x_cls_2, x_cls_4,_) = model(image_batch)
 
             loss = 0.0           
             mask_2_way = (num_classes_batch == 2)

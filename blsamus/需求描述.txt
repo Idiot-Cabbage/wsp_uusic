@@ -88,5 +88,16 @@ segmentation（分割）
 甲状腺   private_Kidney
 
 
+分类标签
 
+Appendix 0 = normal 1=abnormal
 
+BUS 0 = benign 1=maligant
+
+fatty-liver 0,1 同 Appendix
+private_Breast_luminal  0 HER2 1 Luminal A 2Luminal B 3 Triple Negative
+
+0 HER2：  0 
+1 Luminal A：1 管腔 A 型
+2 Luminal B：2 管腔 B 型
+3 Triple Negative：3 三阴性（乳腺癌）

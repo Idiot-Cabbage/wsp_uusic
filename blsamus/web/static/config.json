@@ -1,0 +1,10 @@
+{
+	"development": {
+		"API_BASE": "http://localhost:16019/",
+		"APP_ID": "test123"
+	},
+	"production": {
+		"API_BASE": "http://localhost:16019/",
+		"APP_ID": "produ123"
+	}
+}

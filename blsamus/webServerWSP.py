@@ -135,7 +135,12 @@ async def segment_image(req: SegmentRequest):
 
     elif req.task == "classification":
         # 假设二分类
-        logits = outputs_tuple[1]
+        if req.dataset_name == "private_Breast_luminal":
+            # num_classes = 4
+            logits = outputs_tuple[2]
+        else:
+            # num_classes = 2
+            logits = outputs_tuple[1]
         probabilities = torch.softmax(logits, dim=1).cpu().numpy().flatten()
         prediction = int(np.argmax(probabilities))
         gpu_memory_mb = round(torch.cuda.memory_allocated() / 1024 / 1024, 2)
