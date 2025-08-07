@@ -169,23 +169,23 @@ def random_sample(
 ):
     # 拼接根路径
     if task == "segmentation":
-        base_dir = f"segmentation/private_{dataset_name}/imgs"
+        base_dir = f"data/segmentation/{dataset_name}/imgs"
+        folder_path = base_dir  # 分割任务直接用 base_dir
     elif task == "classification":
-        base_dir = f"classification/private_{dataset_name}"
+        base_dir = f"data/classification/{dataset_name}"
+        # 分类任务随机一个子文件夹
+        subfolders = [f for f in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, f))]
+        if subfolders:
+            chosen_folder = random.choice(subfolders)
+            folder_path = os.path.join(base_dir, chosen_folder)
+        else:
+            folder_path = base_dir
     else:
         return JSONResponse({"error": "不支持的task类型"}, status_code=400)
 
     # 检查路径是否存在
-    if not os.path.exists(base_dir):
-        return JSONResponse({"error": f"路径不存在: {base_dir}"}, status_code=404)
-
-    # 随机选择一个子文件夹（如果有）
-    subfolders = [f for f in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, f))]
-    if subfolders:
-        chosen_folder = random.choice(subfolders)
-        folder_path = os.path.join(base_dir, chosen_folder)
-    else:
-        folder_path = base_dir
+    if not os.path.exists(folder_path):
+        return JSONResponse({"error": f"路径不存在: {folder_path}"}, status_code=404)
 
     # 随机选择一个图片文件
     img_files = [f for f in os.listdir(folder_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
@@ -217,7 +217,7 @@ def random_sample(
         "class_label_index": None,
         "class_label_name": None
     }
-    return JSONResponse(result)    
+    return JSONResponse(result)     
 
 @app.get("/")
 def read_root():

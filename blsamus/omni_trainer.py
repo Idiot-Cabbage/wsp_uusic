@@ -194,7 +194,7 @@ def omni_train(args, model, snapshot_path):
     seg_iter_num = 0
     cls_iter_num = 0
     max_epoch = args.max_epochs
-    total_iterations = (len(trainloader_cls) + len(trainloader_seg))
+    total_iterations = len(trainloader_cls)  + len(trainloader_seg)
     max_iterations = args.max_epochs * total_iterations
     logging.info("{} batch size. {} iterations per epoch. {} max iterations ".format(
         batch_size, total_iterations, max_iterations))
@@ -493,6 +493,8 @@ def omni_train(args, model, snapshot_path):
             writer.add_scalar('info/val_metric_cls_Total', cls_avg_performance, epoch_num)
 
             TotalAvgPerformance = total_performance/2
+
+            logging.info('This epoch %d seg performance: %f cls performance: %f' % (epoch_num, seg_avg_performance, cls_avg_performance))
 
             logging.info('This epoch %d Validation performance: %f' % (epoch_num, TotalAvgPerformance))
             logging.info('But the best epoch is: %d and performance: %f' % (best_epoch, best_performance))

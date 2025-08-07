@@ -512,15 +512,15 @@ class SAMUSAdapter(nn.Module):
         return SAMUSArgs()
 
 
-    def create_classifier_args(self, num_classes):
-        """创建分类器参数"""
-        class ClassifierArgs:
-            def __init__(self, num_classes):
-                self.classifier_name = 'Resnet18'
-                self.classifier_size = 256
-                self.classifier_classes = num_classes
+    # def create_classifier_args(self, num_classes):
+    #     """创建分类器参数"""
+    #     class ClassifierArgs:
+    #         def __init__(self, num_classes):
+    #             self.classifier_name = 'Resnet18'
+    #             self.classifier_size = 256
+    #             self.classifier_classes = num_classes
                 
-        return ClassifierArgs(num_classes)
+    #     return ClassifierArgs(num_classes)
     
    
     
@@ -618,37 +618,23 @@ class SAMUSAdapter(nn.Module):
         
 
         self.prompt=False
-        if self.prompt:
-            x, position_prompt, task_prompt, type_prompt, nature_prompt = x
-        
         for inx, layer_head in enumerate(self.layers_task_cls_up):
             if inx == 0:
                 x_cls = layer_head(x)
-            else:
-                if self.prompt:
-                    if inx == 1:
-                        x_cls = layer_head(x_cls +
-                                           self.dec_prompt_mlp_cls2(torch.cat([position_prompt, task_prompt, type_prompt, nature_prompt], dim=1)).unsqueeze(1))
-                    if inx == 2:
-                        x_cls = layer_head(x_cls +
-                                           self.dec_prompt_mlp_seg2_cls3(torch.cat([position_prompt, task_prompt, type_prompt, nature_prompt], dim=1)).unsqueeze(1))
-                else:
-                    x_cls = layer_head(x_cls)
+            else:               
+                x_cls = layer_head(x_cls)
 
         x_cls = self.norm_task_cls(x_cls)
-        # x_cls = x
 
-        
         B, _, _ = x_cls.shape
         x_cls = x_cls.transpose(1, 2)
         x_cls = F.adaptive_avg_pool1d(x_cls, 1).view(B, -1)
         
         x_cls_2_way = self.layers_task_cls_head_2cls[0](x_cls)
         x_cls_4_way = self.layers_task_cls_head_4cls[0](x_cls)
-
-
         
-        return seg_logits,x_cls_2_way,x_cls_4_way
+
+        return (seg_logits, x_cls_2_way, x_cls_4_way)     
     def load_from(self, config):
         """加载预训练权重"""
         # 加载 SAMUS 权重

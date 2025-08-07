@@ -67,6 +67,7 @@ args = parser.parse_args()
 config = get_config(args)
 
 
+
 def inference(args, model, test_save_path=None):
     import csv
     import time
@@ -239,7 +240,7 @@ if __name__ == "__main__":
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
-
+ 
     net = ModelClass(
         config,
         prompt=args.prompt,

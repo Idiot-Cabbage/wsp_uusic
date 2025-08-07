@@ -73,11 +73,11 @@ def omni_train(args, model, snapshot_path):
         print(f"** DDP ** : Start running on rank {rank}.")
     else:
         # 单GPU训练，使用默认设备
-        torch.cuda.set_device(1)   
+        torch.cuda.set_device(0)   
         world_size = 1 
-        gpu_id =1
+        gpu_id =0
         rank = 0
-        device = torch.device("cuda",1)
+        device = torch.device("cuda",0)
 
     
 
@@ -166,7 +166,7 @@ def omni_train(args, model, snapshot_path):
 
     model = model.to(device=device)
     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-    # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu_id], find_unused_parameters=True)
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu_id], find_unused_parameters=True)
 
     model.train()
 
@@ -181,7 +181,7 @@ def omni_train(args, model, snapshot_path):
     cls_ce_loss_2way = CrossEntropyLoss()
     cls_ce_loss_4way = CrossEntropyLoss()
 
-    optimizer = optim.AdamW(model.parameters(), lr=base_lr, weight_decay=0.05, betas=(0.9, 0.999))
+    optimizer = optim.AdamW(model.parameters(), lr=base_lr, weight_decay=1e-4, betas=(0.9, 0.999))
 
     resume_epoch = 0
     if args.resume is not None:
@@ -260,6 +260,7 @@ def omni_train(args, model, snapshot_path):
             num_classes_batch = sampled_batch['num_classes']
             image_batch, label_batch = image_batch.to(device=device), label_batch.to(device=device)
             if args.prompt:
+                print("Using prompt_______________________________________________")
                 position_prompt = torch.tensor(np.array(sampled_batch['position_prompt'])).permute([
                     1, 0]).float().to(device=device)
                 task_prompt = torch.tensor(np.array(sampled_batch['task_prompt'])).permute([
@@ -271,9 +272,9 @@ def omni_train(args, model, snapshot_path):
                 (_, x_cls_2, x_cls_4) = model((image_batch, position_prompt, task_prompt, type_prompt, nature_prompt))
             else:
                 (_, x_cls_2, x_cls_4) = model(image_batch)
+                #print(model.module.norm_task_cls.bias.grad)
 
-            loss = 0.0
-            
+            loss = 0.0           
             mask_2_way = (num_classes_batch == 2)
             mask_4_way = (num_classes_batch == 4)
 
@@ -386,7 +387,7 @@ def omni_train(args, model, snapshot_path):
                         if not metric_i[sample_index][1]:
                             count_matrix[i_batch*batch_size+sample_index, 0] = 0
                     metric_i = [element[0] for element in metric_i]
-                    metric_list += np.array(metric_i).sum() * batch_size
+                    metric_list += np.array(metric_i).sum()*batch_size
 
                 metric_list = metric_list / (count_matrix.sum(axis=0) + 1e-6)
                 performance = np.mean(metric_list, axis=0)
@@ -412,6 +413,7 @@ def omni_train(args, model, snapshot_path):
             cls_avg_performance = 0.0
 
             for dataset_name in cls_val_set:
+                # break
                 if dataset_name == "private_Breast_luminal":
                     num_classes = 4
                 else:
@@ -454,7 +456,7 @@ def omni_train(args, model, snapshot_path):
 
                     # output_prob = torch.softmax(logits, dim=0).data.cpu().numpy()
                     if logits is not None:
-                        output_prob = torch.softmax(logits, dim=0).data.cpu().numpy()
+                        output_prob = torch.softmax(logits, dim=1).data.cpu().numpy()
                         # 继续处理 output_prob
                     else:
                         print("警告：logits 为 None，跳过 softmax 处理")
@@ -489,7 +491,9 @@ def omni_train(args, model, snapshot_path):
             total_performance += cls_avg_performance
             writer.add_scalar('info/val_metric_cls_Total', cls_avg_performance, epoch_num)
 
-            TotalAvgPerformance = total_performance/2
+            TotalAvgPerformance = total_performance
+
+            logging.info('This epoch %d seg performance: %f cls performance: %f' % (epoch_num, seg_avg_performance, cls_avg_performance))
 
             logging.info('This epoch %d Validation performance: %f' % (epoch_num, TotalAvgPerformance))
             logging.info('But the best epoch is: %d and performance: %f' % (best_epoch, best_performance))

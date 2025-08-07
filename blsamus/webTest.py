@@ -20,8 +20,7 @@ data = {
     "class_label_name": ""           # str
 }
 # for i in range(0,200):
-resp = requests.post(url, json=data)
-print(resp.json())
+
 
 datacls={
         "img_name": "normal_10.png",
@@ -44,6 +43,33 @@ datacls={
     }
 
 # for i in range(0,200):
+
+
+# resp = requests.post(url, json=data)
+# print(resp.json())
+# resp = requests.post(url, json=datacls)
+# print(resp.json())
+
+
+url = "http://localhost:36009/random_sample/"
+
+# 示例1：分割任务
+params_seg = {
+    "task": "segmentation",
+    "dataset_name": "KidneyUS"
+}
+resp_seg = requests.get(url, params=params_seg)
+print("分割随机样本结果：", resp_seg.json())
+
+# 示例2：分类任务
+params_cls = {
+    "task": "classification",
+    "dataset_name": "Appendix"
+}
+resp_cls = requests.get(url, params=params_cls)
+print("分类随机样本结果：", resp_cls.json())
+
 resp = requests.post(url, json=datacls)
 print(resp.json())
+
 

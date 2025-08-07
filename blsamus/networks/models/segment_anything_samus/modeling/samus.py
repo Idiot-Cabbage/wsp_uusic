@@ -59,6 +59,21 @@ class Samus(nn.Module):
         for n, value in self.image_encoder.named_parameters():
           if "cnn_embed" not in n and "post_pos_embed" not in n and "Adapter" not in n and "2.attn.rel_pos" not in n and "5.attn.rel_pos" not in n and "8.attn.rel_pos" not in n and "11.attn.rel_pos" not in n and "upneck" not in n:
             value.requires_grad = False
+        
+         ### 解冻vit_tiny的部分权重
+        
+        # for param in self.image_encoder.neck.parameters():
+        #     param.requires_grad = True
+        # for i, blk in enumerate(self.image_encoder.blocks):
+        #     for p in blk.mlp.parameters():
+        #         p.requires_grad = True
+        # # for i, blk in enumerate(self.image_encoder.blocks[2]):
+        # #     for p in blk.mlp.parameters():
+        # #         p.requires_grad = True
+        # # for i, blk in enumerate(self.image_encoder.blocks[3]):
+        # #     for p in blk.mlp.parameters():
+        # #         p.requires_grad = True
+        # 这样会导致分割震荡太大
 
     @property
     def device(self) -> Any:

@@ -41,15 +41,51 @@
 
 
 --返回的json 增加字段：
-inference_time_sec 耗时
-memory_usage_mb  内存占用
-gpu_memory_usage_mb 显存占用，实际使用的
-gpu_memory_reserved_mb  进程分配显存
-
+inference_time_sec      推理耗时（秒）
+memory_usage_mb         内存占用（MB）
+gpu_memory_usage_mb     显存占用（MB）        --，实际使用的
+gpu_memory_reserved_mb  分配显存 (MB)       --给进程预分配的
+ 
 
 --前端 允许用户旋转图片，缩放，剪裁图片？
 
+classification（分类）
+Appendix - 阑尾
+BUS - BRA - 乳腺超声（BUS 常指超声检查，BRA 这里结合乳腺相关推测为乳腺，具体含义可能需结合专业场景确认 ）
+BUSI - 乳腺超声图像（推测，BUS 为超声，I 可能代表图像等，常用于乳腺超声相关数据集命名 ）
+Fatty - Liver - 脂肪肝
+private_Appendix - 私有阑尾（这里 “private” 表示私有、专属的数据集，下同 ）
+private_Breast - 私有乳腺
+private_Breast_Luminal - 私有乳腺管腔（乳腺管腔相关，用于特定乳腺亚类研究 ）
+private_Liver - 私有肝脏
+segmentation（分割）
+BUS - BRA - 乳腺超声（同分类里的，分割任务下针对乳腺超声数据 ）
+BUSI - 乳腺超声图像（分割任务下的乳腺超声图像数据 ）
+BUSIS - 乳腺超声图像（可能是特定命名的乳腺超声图像分割数据集，具体含义看场景 ）
+CAMUS - 心脏超声多视角图像（常用于心脏超声分割研究的公开数据集 ，全称为 “Cardiac Ultrasound Multi - view Image Segmentation” 相关 ）
+DDTI - 暂未明确通用翻译，可能是特定领域（如神经、肌肉等 ）的数据集专属名称，需结合专业背景，DDTI 可能代表特定成像或组织的缩写
+Fetal_HC - 胎儿头围（针对胎儿超声，分割胎儿头围相关结构 ）
+KidneyUS - 肾脏超声（肾脏超声分割数据集 ）
+private_Breast - 私有乳腺（私有数据集里的乳腺分割数据 ）
+private_Breast_Luminal - 私有乳腺管腔（私有数据集里乳腺管腔分割数据 ）
+private_Cardiac - 私有心脏（私有数据集里心脏超声分割数据 ）
+private_Fetal_Head - 私有胎儿头部（私有数据集里胎儿头部超声分割数据 ）
+private_Kidney - 私有肾脏（私有数据集里肾脏超声分割数据 ）
+private_Thyroid - 私有甲状腺（私有数据集里甲状腺超声分割数据 ）
 
+classification（分类）
+
+阑尾 --从private_Appendix随机图像
+乳腺 --BUS - BRA
+脂肪肝 --Fatty - Liver
+乳腺管腔 --private_Breast_Luminal
+
+segmentation（分割）
+乳腺  BUS - BRA
+心脏  CAMUS
+胎儿头部 Fetal_HC 
+肾脏     KidneyUS
+甲状腺   private_Kidney
 
 
 

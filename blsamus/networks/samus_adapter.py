@@ -578,6 +578,7 @@ class SAMUSAdapter(nn.Module):
         # 在分布式环境中，每个GPU处理更小的batch
         # 使用混合精度训练
         # with torch.cuda.amp.autocast():
+        #分割任务
         try:
             samus_output,image_features = self.samus_model(image_batch) # image_features[batchsize,length,256]
             
@@ -610,15 +611,7 @@ class SAMUSAdapter(nn.Module):
         if seg_features.dim() == 3:
             seg_features = seg_features.unsqueeze(1)
         
-        # if seg_features.shape[1] != 256:
-        #     if not hasattr(self, 'feature_adapter'):
-        #         self.feature_adapter = nn.Conv2d(seg_features.shape[1], 256, 1).to(seg_features.device)
-        #     seg_features = self.feature_adapter(seg_features)
         
-        # seg_logits = self.seg_head(seg_features)
-        # prob = torch.sigmoid(seg_features)
-        # prob = torch.clamp(prob, 1e-7, 1-1e-7)
-        # seg_logits = torch.log(torch.cat([1 - prob, prob], dim=1))
         seg_logits  = seg_features
         # 分类任务
        
