@@ -101,3 +101,10 @@ private_Breast_luminal  0 HER2 1 Luminal A 2Luminal B 3 Triple Negative
 1 Luminal A：1 管腔 A 型
 2 Luminal B：2 管腔 B 型
 3 Triple Negative：3 三阴性（乳腺癌）
+
+
+上传图片
+要把图片保存到服务器的一个目录，然后请求接口的时候，路径用该目录。
+上传路径为
+/root/autodl-tmp/wsp_uusic/api_in/图像名称.后缀名
+该路径就是请求的参数，图片长宽信息也代入请求参数。

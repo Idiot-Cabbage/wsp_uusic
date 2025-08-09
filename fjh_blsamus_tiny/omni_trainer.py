@@ -135,12 +135,12 @@ def omni_train(args, model, snapshot_path):
 
     # weight_base = [2, 1/4, 2, 2]
     weight_base = [
-        1,     # for 331
+        1*2,     # for 331
         0.25,  # for 1312
         1,     # for 452
         1,     # for 385
         4,     # for 46
-        3,     # for 105
+        3*1.25,     # for 105
         2,     # for 165
         4,     # for 72
     ]
@@ -194,7 +194,7 @@ def omni_train(args, model, snapshot_path):
     seg_iter_num = 0
     cls_iter_num = 0
     max_epoch = args.max_epochs
-    total_iterations = (len(trainloader_seg) + len(trainloader_cls))
+    total_iterations = ( len(trainloader_cls)) #len(trainloader_seg) +
     max_iterations = args.max_epochs * total_iterations
     logging.info("{} batch size. {} iterations per epoch. {} max iterations ".format(
         batch_size, total_iterations, max_iterations))
@@ -213,6 +213,7 @@ def omni_train(args, model, snapshot_path):
 
         torch.cuda.empty_cache()
         for i_batch, sampled_batch in tqdm(enumerate(trainloader_seg)):
+            break
             image_batch, label_batch = sampled_batch['image'], sampled_batch['label']
             image_batch, label_batch = image_batch.to(device=device), label_batch.to(device=device)
             if args.prompt:
@@ -347,7 +348,7 @@ def omni_train(args, model, snapshot_path):
             seg_avg_performance = 0.0
 
             for dataset_name in seg_val_set:
-                # break
+                break
                 num_classes = 2
                 db_val = USdatasetSeg(
                     base_dir=os.path.join(args.root_path,

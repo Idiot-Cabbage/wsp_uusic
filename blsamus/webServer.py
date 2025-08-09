@@ -1,7 +1,9 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware  # cors
 from fastapi.staticfiles import StaticFiles # 图片支持
+import shutil
 import os
 import numpy as np
 from PIL import Image
@@ -31,10 +33,41 @@ app.add_middleware(
     allow_headers=["*"],        # 允许的请求头
 )
 
-app.mount("/static", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/data"), name="static")
-app.mount("/staticout", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/api_out"), name="staticout")
+app.mount("/staticdata", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/data"), name="staticdata")
+app.mount("/staticapi_in", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/api_in"), name="api_in")
+app.mount("/staticapi_out", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/api_out"), name="staticapi_out")
 
+app.mount("/web", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/web"), name="web")
+app.mount("/static", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/web/static"), name="static")
+app.mount("/assets", StaticFiles(directory="/root/autodl-tmp/wsp_uusic/blsamus/web/assets"), name="assets")
 
+#上传图片
+UPLOAD_DIR = "api_in"
+@app.post("/upload")
+async def upload_single_image(file: UploadFile = File(...)):
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)  # 流式写入避免内存溢出
+    
+     # 获取图片信息
+    img = Image.open(file_path)
+    img_size_bytes = os.path.getsize(file_path)
+    img_dimensions = list(img.size)
+    img_format = img.format.lower() if img.format else os.path.splitext(file_path)[1][1:]
+
+    # 构造返回信息
+    result = {
+        "img_name": file.filename,
+        "img_path_relative": file_path,
+        "img_size_bytes": img_size_bytes,
+        "img_dimensions":img_dimensions,
+        "img_format": img_format
+    }
+    return result;
+
+# AI 检测功能
 SEGMENT_OUT_DIR = "api_out/segment"
 os.makedirs(SEGMENT_OUT_DIR, exist_ok=True)
 CLASSIFICATION_OUT_DIR = "api_out/classification"
@@ -265,7 +298,8 @@ def random_sample(
 
 @app.get("/")
 def read_root():
-    return {"message": "普渡超声"}
+    # return {"message": "普渡超声"}
+    return FileResponse("web/index.html")
 
 if __name__ == "__main__":
     import uvicorn
