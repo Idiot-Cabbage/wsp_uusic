@@ -62,17 +62,17 @@ class Samus(nn.Module):
         
          ### 解冻vit_tiny的部分权重
         
-        # for param in self.image_encoder.neck.parameters():
-        #     param.requires_grad = True
-        # for i, blk in enumerate(self.image_encoder.blocks):
+        for param in self.image_encoder.neck.parameters():
+            param.requires_grad = True
+        for i, blk in enumerate(self.image_encoder.blocks):
+            for p in blk.mlp.parameters():
+                p.requires_grad = True
+        # for i, blk in enumerate(self.image_encoder.blocks[2]):
         #     for p in blk.mlp.parameters():
         #         p.requires_grad = True
-        # # for i, blk in enumerate(self.image_encoder.blocks[2]):
-        # #     for p in blk.mlp.parameters():
-        # #         p.requires_grad = True
-        # # for i, blk in enumerate(self.image_encoder.blocks[3]):
-        # #     for p in blk.mlp.parameters():
-        # #         p.requires_grad = True
+        # for i, blk in enumerate(self.image_encoder.blocks[3]):
+        #     for p in blk.mlp.parameters():
+        #         p.requires_grad = True
         # 这样会导致分割震荡太大
 
     @property

@@ -16,7 +16,7 @@ from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 
 
-from utils import DiceLoss
+from utils import DiceLoss, adjust_lr_by_dataset, adjust_lr_by_dataset_before, setup_multi_lr_optimizer
 from datasets.dataset import USdatasetCls, USdatasetSeg
 from datasets.omni_dataset import WeightedRandomSamplerDDP
 from datasets.omni_dataset import USdatasetOmni_cls, USdatasetOmni_seg
@@ -135,12 +135,12 @@ def omni_train(args, model, snapshot_path):
 
     # weight_base = [2, 1/4, 2, 2]
     weight_base = [
-        1*2,     # for 331
+        1*0.5,     # for 331
         0.25,  # for 1312
         1,     # for 452
         1,     # for 385
         4,     # for 46
-        3*1.25,     # for 105
+        3*0.5,     # for 105
         2,     # for 165
         4,     # for 72
     ]
@@ -182,6 +182,7 @@ def omni_train(args, model, snapshot_path):
     cls_ce_loss_4way = CrossEntropyLoss()
 
     optimizer = optim.AdamW(model.parameters(), lr=base_lr, weight_decay=1e-4, betas=(0.9, 0.999))
+    # optimizer = setup_multi_lr_optimizer(model, base_lr)
 
     resume_epoch = 0
     if args.resume is not None:
@@ -194,7 +195,7 @@ def omni_train(args, model, snapshot_path):
     seg_iter_num = 0
     cls_iter_num = 0
     max_epoch = args.max_epochs
-    total_iterations = ( len(trainloader_cls)) #len(trainloader_seg) +
+    total_iterations = ( len(trainloader_seg) +len(trainloader_cls)) #
     max_iterations = args.max_epochs * total_iterations
     logging.info("{} batch size. {} iterations per epoch. {} max iterations ".format(
         batch_size, total_iterations, max_iterations))
@@ -205,6 +206,9 @@ def omni_train(args, model, snapshot_path):
         iterator = tqdm(range(resume_epoch, max_epoch), ncols=70, disable=True)
     else:
         iterator = tqdm(range(resume_epoch, max_epoch), ncols=70, disable=False)
+    
+    # 在 omni_train 函数开头添加
+    excluded_datasets = set()
 
     for epoch_num in iterator:
         logging.info("\n epoch: {}".format(epoch_num))
@@ -213,7 +217,7 @@ def omni_train(args, model, snapshot_path):
 
         torch.cuda.empty_cache()
         for i_batch, sampled_batch in tqdm(enumerate(trainloader_seg)):
-            break
+            # break
             image_batch, label_batch = sampled_batch['image'], sampled_batch['label']
             image_batch, label_batch = image_batch.to(device=device), label_batch.to(device=device)
             if args.prompt:
@@ -239,13 +243,14 @@ def omni_train(args, model, snapshot_path):
             loss = 0.2 * loss_ce + 0.8 * loss_dice
 
           
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
             lr_ = base_lr * (1.0 - global_iter_num / max_iterations) ** 0.9
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr_
+                
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
 
             seg_iter_num = seg_iter_num + 1
             global_iter_num = global_iter_num + 1
@@ -255,10 +260,15 @@ def omni_train(args, model, snapshot_path):
 
             logging.info('global iteration %d and seg iteration %d : loss : %f' %
                          (global_iter_num, seg_iter_num, loss.item()))
-        
+            
+            
+        currentnum = 0
         for i_batch, sampled_batch in tqdm(enumerate(trainloader_cls)):
+           # 假设 excluded_datasets = {'Appendix', 'private_Breast'}
+            case_names = sampled_batch['case_name']  # 是一个列表   
             image_batch, label_batch = sampled_batch['image'], sampled_batch['label']
-            num_classes_batch = sampled_batch['num_classes']
+            num_classes_batch = sampled_batch['num_classes']  
+
             image_batch, label_batch = image_batch.to(device=device), label_batch.to(device=device)
             if args.prompt:
                 print("Using prompt_______________________________________________")
@@ -295,13 +305,23 @@ def omni_train(args, model, snapshot_path):
 
             # loss_ce = cls_ce_loss(x_cls, label_batch[:].long())
             # loss = loss_ce
+           
+            # adjust_lr_by_dataset_before(optimizer,currentnum, base_lr, dataset_name)
+            
+         
+            
+            for param_group in optimizer.param_groups:            
+                    dataset_mult = 1.0                    
+                    param_group['lr'] = base_lr * 0.01  * dataset_mult * (1.0 - global_iter_num / max_iterations) ** 0.9
+                    lr_= param_group['lr']          
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            lr_ = base_lr * (1.0 - global_iter_num / max_iterations) ** 0.9
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = lr_
+            # lr_ = base_lr * (1.0 - global_iter_num / max_iterations) ** 0.9
+            # for param_group in optimizer.param_groups:
+            #     param_group['lr'] = lr_
+            # lr_=adjust_lr_by_dataset(optimizer, global_iter_num, max_iterations, base_lr, dataset_name)
 
             cls_iter_num = cls_iter_num + 1
             global_iter_num = global_iter_num + 1
@@ -348,7 +368,7 @@ def omni_train(args, model, snapshot_path):
             seg_avg_performance = 0.0
 
             for dataset_name in seg_val_set:
-                break
+                # break
                 num_classes = 2
                 db_val = USdatasetSeg(
                     base_dir=os.path.join(args.root_path,
@@ -467,12 +487,7 @@ def omni_train(args, model, snapshot_path):
                     label_list.append(label.numpy())
                     prediction_prob_list.append(output_prob)
 
-                # label_list = np.expand_dims(np.concatenate(
-                #     (np.array(label_list[:-1]).flatten(), np.array(label_list[-1]).flatten())), axis=1).astype('uint8')
-                # label_list_OneHot = np.eye(num_classes)[label_list].squeeze(1)
-                # performance = roc_auc_score(label_list_OneHot, np.concatenate(
-                #     (np.array(prediction_prob_list[:-1]).reshape(-1, 2), prediction_prob_list[-1])), multi_class='ovo')
-                
+             
 
 
                 label_list = np.expand_dims(np.concatenate(
@@ -485,14 +500,14 @@ def omni_train(args, model, snapshot_path):
                 performance = roc_auc_score(label_list_OneHot, all_prediction_probs, multi_class='ovo')
 
                 writer.add_scalar('info/val_cls_metric_{}'.format(dataset_name), performance, epoch_num)
-
+                
                 cls_avg_performance += performance
 
             cls_avg_performance = cls_avg_performance / (len(cls_val_set)+1e-6)
             total_performance += cls_avg_performance
             writer.add_scalar('info/val_metric_cls_Total', cls_avg_performance, epoch_num)
 
-            TotalAvgPerformance = total_performance
+            TotalAvgPerformance = total_performance/2
 
             logging.info('This epoch %d seg performance: %f cls performance: %f' % (epoch_num, seg_avg_performance, cls_avg_performance))
 

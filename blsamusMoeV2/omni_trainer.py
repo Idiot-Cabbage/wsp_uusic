@@ -244,7 +244,7 @@ def omni_train(args, model, snapshot_path):
                 moe_loss += switch_load_balancing_loss(logits,num_experts= 4)
             moe_loss /= len(router_logits)
 
-            moe_weight = 0.1
+            moe_weight = 0.01
             loss = (1-moe_weight)*loss + moe_weight*moe_loss
 
             optimizer.zero_grad()

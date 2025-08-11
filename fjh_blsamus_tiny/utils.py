@@ -95,3 +95,94 @@ def omni_seg_test(image, label, net, classes, ClassStartIndex=1, test_save_path=
         cv2.imwrite(test_save_path + '/'+case + "_img.png", ((image.squeeze(0))*255).astype(np.uint8))
         cv2.imwrite(test_save_path + '/'+case + "_gt.png", (label*255).astype(np.uint8))
     return metric_list
+import torch.optim as optim
+def setup_multi_lr_optimizer(model, base_lr):
+    """设置多层级学习率优化器"""
+    # 分离参数
+    seg_params = []
+    cls_params = []
+    
+    for name, param in model.named_parameters():
+        if any(x in name.lower() for x in ['cls', 'classification', 'head']):
+            cls_params.append(param)
+        else:
+            seg_params.append(param)
+    
+    # 创建参数组
+    param_groups = [
+        {
+            'params': seg_params, 
+            'lr': base_lr, 
+            'name': 'segmentation',
+            'weight_decay': 1e-4
+        },
+        {
+            'params': cls_params, 
+            'lr': base_lr * 0.01,  # 分类学习率大幅降低
+            'name': 'classification',
+            'weight_decay': 1e-3  # 分类任务增加正则化
+        }
+    ]
+    
+    optimizer = optim.AdamW(param_groups, betas=(0.9, 0.999))
+    return optimizer
+
+
+# 特定数据集的学习率调整策略
+def adjust_lr_by_dataset_before(optimizer, currentnum, base_lr, dataset_info=None):
+    """根据数据集调整学习率"""
+    # 基础学习率衰减
+    base_decay = 1
+    if currentnum!=0:
+        return
+        
+    
+    # 数据集特定倍数
+    dataset_multipliers = {
+        "Appendix": 0.1,  # 过拟合严重
+        "private_Breast_luminal": 0.1,  # 4分类难度大
+        
+    }
+    
+    for param_group in optimizer.param_groups:
+        if param_group['name'] == 'segmentation':
+            param_group['lr'] = base_lr * base_decay
+            lr= param_group['lr']
+        elif param_group['name'] == 'classification':
+            # 分类任务基础学习率就低，再根据数据集调整
+            dataset_mult = 1.0
+            if dataset_info and dataset_info in dataset_multipliers:
+                dataset_mult = dataset_multipliers[dataset_info]
+            param_group['lr'] = base_lr * 0.1 * base_decay * dataset_mult
+            lr= param_group['lr']
+    
+   
+
+
+# 特定数据集的学习率调整策略
+def adjust_lr_by_dataset(optimizer, global_iter_num, max_iterations, base_lr, dataset_info=None):
+    """根据数据集调整学习率"""
+    # 基础学习率衰减
+    base_decay = (1.0 - global_iter_num / max_iterations) ** 0.9
+    
+    # 数据集特定倍数
+    dataset_multipliers = {
+        "Appendix": 0.1,  # 过拟合严重
+        "private_Breast_luminal": 0.1,  # 4分类难度大
+        
+    }
+    
+    for param_group in optimizer.param_groups:
+        if param_group['name'] == 'segmentation':
+            param_group['lr'] = base_lr * base_decay
+            lr= param_group['lr']
+        elif param_group['name'] == 'classification':
+            # 分类任务基础学习率就低，再根据数据集调整
+            dataset_mult = 1.0
+            if dataset_info and dataset_info in dataset_multipliers:
+                dataset_mult = dataset_multipliers[dataset_info]
+            param_group['lr'] = base_lr * 0.1 * base_decay * dataset_mult
+            lr= param_group['lr']
+    
+    return   lr      
+
