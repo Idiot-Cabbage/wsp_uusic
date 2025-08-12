@@ -16,10 +16,11 @@ from datasets.dataset import USdatasetCls, USdatasetSeg
 
 from utils import omni_seg_test
 from sklearn.metrics import accuracy_score
-# 在文件开头添加
-USE_SAMUS = True  # 与训练时保持一致
 
-if USE_SAMUS:
+# 与训练脚本保持一致，默认使用带 MoE 的 SAMUS
+USE_SAMUS_MOE = True
+
+if USE_SAMUS_MOE:
     from networks.samus_adapter import SAMUSAdapter as ModelClass
 else:
     from networks.omni_vision_transformer import OmniVisionTransformer as ModelClass

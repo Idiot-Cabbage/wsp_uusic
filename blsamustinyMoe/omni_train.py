@@ -4,10 +4,11 @@ import random
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
-# 选择使用的模型
-USE_SAMUS = True  # 设置为 True 使用 SAMUS，False 使用原始 ViT_omni
 
-if USE_SAMUS:
+# 选择使用的模型
+USE_SAMUS_MOE = True  # True 使用带 MoE 的 SAMUS，False 使用原始 ViT_omni
+
+if USE_SAMUS_MOE:
     from networks.samus_adapter import SAMUSAdapter as ModelClass
 else:
     from networks.omni_vision_transformer import OmniVisionTransformer as ModelClass
