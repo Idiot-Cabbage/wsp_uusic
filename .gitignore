@@ -199,3 +199,25 @@ blsamusMoeV2/networks/models/segment_anything_samus_moe/__pycache__/
 blsamusMoeV2/networks/models/segment_anything_samus_moe/__pycache__/
 blsamusMoeV2/networks/models/segment_anything_samus_moe/modeling/__pycache__/
 
+
+blsamustinyMoe/networks/models/segment_anything/modeling/__pycache__/
+blsamustinyMoe/networks/models/segment_anything/__pycache__/
+blsamustinyMoe/networks/models/segment_anything_samus/__pycache__/
+blsamustinyMoe/networks/models/segment_anything_samus/modeling/__pycache__/
+blsamustinyMoe/networks/models/segment_anything_samus/utils/__pycache__/
+blsamustinyMoe/networks/models/segment_anything/utils/__pycache__/
+blsamustinyMoe/networks/models/__pycache__/
+blsamustinyMoe/data/
+blsamustinyMoe/exp_out/
+blsamustinyMoe/__pycache__/
+blsamustinyMoe/networks/__pycache__/
+blsamustinyMoe/pretrained_ckpt/swin_tiny_patch4_window7_224.pth
+blsamustinyMoe/datasets/__pycache__/dataset.cpython-310.pyc
+blsamustinyMoe/datasets/__pycache__/
+blsamustinyMoe/networks/models/segment_anything_samus_moe/__pycache__/
+blsamustinyMoe/networks/models/segment_anything_samus_moe/__pycache__/
+blsamustinyMoe/networks/models/segment_anything_samus_moe/modeling/__pycache__/
+
+blsamustinyMoe/pretrained_ckpt/tiny_vit_21m_22k_distill.pth
+blsamustinyMoe/networks/models/segment_anything_samus_moe/utils/__pycache__/__init__.cpython-310.pyc
+blsamustinyMoe/networks/models/segment_anything_samus_moe/utils/__pycache__/amg.cpython-310.pyc
