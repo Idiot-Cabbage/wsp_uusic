@@ -19,6 +19,7 @@ from typing import Tuple
 from typing import Optional, Tuple, Type
 
 from .common import LayerNorm2d, MLPBlock, Adapter, AugAdapter
+from .moe_layers import MoEAdapter
 import math
 
 class Conv2d_BN(torch.nn.Sequential):
@@ -721,7 +722,7 @@ class TinyViT(nn.Module):
             ),
             LayerNorm2d(256),
         )
-        self.input_Adapter = Adapter(embed_dim)
+        self.input_Adapter = MoEAdapter(dim=embed_dim)
     def set_layer_lr_decay(self, layer_lr_decay):
         decay_rate = layer_lr_decay
 
@@ -771,10 +772,10 @@ class TinyViT(nn.Module):
 
     def forward_features(self, x):
         # x: (N, C, H, W)
-        x = self.patch_embed(x) # 4 3 224 224
-        x = x.permute(0, 2, 3, 1).contiguous()
+        x = self.patch_embed(x)  # 4 3 224 224
+        x = x.permute(0, 2, 3, 1).contiguous()  # [B, H, W, C]
         x = self.input_Adapter(x)
-        x = x.permute(0, 3, 1, 2).contiguous()
+        x = x.permute(0, 3, 1, 2).contiguous()  # [B, C, H, W]
 
         x = self.layers[0](x)
         start_i = 1
