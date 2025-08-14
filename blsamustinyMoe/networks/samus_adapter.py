@@ -529,6 +529,9 @@ class SAMUSAdapter(nn.Module):
     def forward(self, x):
         """
         前向传播，支持分布式训练
+
+        Returns:
+            tuple: (seg_logits, x_cls_2_way, x_cls_4_way, moe_aux)
         """
         # 处理输入
         if isinstance(x, tuple):
@@ -564,15 +567,16 @@ class SAMUSAdapter(nn.Module):
         # 使用混合精度训练
         # with torch.cuda.amp.autocast():
         try:
-            samus_output,image_features = self.samus_model(image_batch) # image_features[batchsize,length,256]
-            
+            samus_output, image_features = self.samus_model(image_batch)  # image_features[batchsize,length,256]
+            moe_aux = self.samus_model.get_aux_loss()
+
             if isinstance(samus_output, dict):
                 seg_features = samus_output.get('masks', list(samus_output.values())[0])
             elif isinstance(samus_output, tuple):
                 seg_features = samus_output[0]
             else:
                 seg_features = samus_output
-                
+
         except torch.cuda.OutOfMemoryError:
             # 如果仍然内存不足，降级到逐张处理
             print(f"Rank {torch.distributed.get_rank() if torch.distributed.is_initialized() else 0}: 内存不足，降级到逐张处理")
@@ -590,6 +594,7 @@ class SAMUSAdapter(nn.Module):
                     seg_features_list.append(single_features)
                 torch.cuda.empty_cache()
             seg_features = torch.cat(seg_features_list, dim=0)
+            moe_aux = self.samus_model.get_aux_loss()
         
         # 继续处理...
         if seg_features.dim() == 3:
@@ -634,7 +639,8 @@ class SAMUSAdapter(nn.Module):
         x_cls_4_way = self.layers_task_cls_head_4cls[0](x_cls)
         
 
-        return (seg_logits, x_cls_2_way, x_cls_4_way)     
+        # 返回分割 logits、二分类 logits、四分类 logits 以及 MoE 的辅助损失
+        return (seg_logits, x_cls_2_way, x_cls_4_way, moe_aux)
     def load_from(self, config):
         """加载预训练权重"""
         # 加载 SAMUS 权重
