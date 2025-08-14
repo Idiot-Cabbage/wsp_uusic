@@ -109,7 +109,9 @@ class MoEAdapter(nn.Module):
         self.last_routing = None
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        logits = self.router(x)
+        orig_shape = x.shape
+        x_flat = x.view(-1, x.shape[-1])
+        logits = self.router(x_flat).view(orig_shape[:-1] + (self.num_experts,))
         probs = F.softmax(logits, dim=-1)
         if self.training:
             topk = torch.multinomial(probs.view(-1, self.num_experts), self.top_k)
@@ -119,7 +121,8 @@ class MoEAdapter(nn.Module):
         dispatch_mask = F.one_hot(topk, self.num_experts).sum(dim=-2).type_as(probs)
         out = 0.0
         for i, expert in enumerate(self.experts):
-            out = out + expert(x) * dispatch_mask[..., i : i + 1]
+            expert_out = expert(x_flat).view(orig_shape)
+            out = out + expert_out * dispatch_mask[..., i : i + 1]
         out = self.dropout(out)
         if self.skip_connect:
             out = out + x
