@@ -23,7 +23,7 @@ class DropPath(nn.Module):
 
 
 class Router(nn.Module):
-    """Gating mechanism for MoE."""
+    """Simple linear router that produces routing scores."""
 
     def __init__(self, dim: int, num_experts: int, temperature: float = 1.0) -> None:
         super().__init__()
@@ -31,10 +31,7 @@ class Router(nn.Module):
         self.temperature = temperature
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        logits = self.linear(x) / self.temperature
-        if self.training:
-            logits = logits + torch.randn_like(logits) * 0.5
-        return logits
+        return self.linear(x) / self.temperature
 
 
 class MoEFFN(nn.Module):
@@ -65,15 +62,16 @@ class MoEFFN(nn.Module):
         logits = self.router(x)
         probs = F.softmax(logits, dim=-1)
         if self.training:
-            idx = torch.multinomial(probs.view(-1, self.num_experts), 1)
-            idx = idx.view(probs.shape[:-1])
+            topk = torch.multinomial(probs.view(-1, self.num_experts), self.top_k)
+            topk = topk.view(probs.shape[:-1] + (self.top_k,))
         else:
-            idx = probs.argmax(dim=-1)
-        dispatch_mask = F.one_hot(idx, self.num_experts).type_as(probs)
+            topk = probs.topk(self.top_k, dim=-1).indices
+        dispatch_mask = F.one_hot(topk, self.num_experts).sum(dim=-2).type_as(probs)
         out = 0.0
         for i, expert in enumerate(self.experts):
             out = out + expert(x) * dispatch_mask[..., i : i + 1]
-        self.last_routing = dispatch_mask.float().mean(dim=(0, 1)).detach()
+        dims = tuple(range(dispatch_mask.dim() - 1))
+        self.last_routing = dispatch_mask.float().mean(dim=dims).detach()
         ideal = torch.full_like(self.last_routing, 1.0 / self.num_experts)
         self.aux_loss = F.mse_loss(self.last_routing, ideal)
         return out
@@ -114,11 +112,11 @@ class MoEAdapter(nn.Module):
         logits = self.router(x)
         probs = F.softmax(logits, dim=-1)
         if self.training:
-            idx = torch.multinomial(probs.view(-1, self.num_experts), 1)
-            idx = idx.view(probs.shape[:-1])
+            topk = torch.multinomial(probs.view(-1, self.num_experts), self.top_k)
+            topk = topk.view(probs.shape[:-1] + (self.top_k,))
         else:
-            idx = probs.argmax(dim=-1)
-        dispatch_mask = F.one_hot(idx, self.num_experts).type_as(probs)
+            topk = probs.topk(self.top_k, dim=-1).indices
+        dispatch_mask = F.one_hot(topk, self.num_experts).sum(dim=-2).type_as(probs)
         out = 0.0
         for i, expert in enumerate(self.experts):
             out = out + expert(x) * dispatch_mask[..., i : i + 1]
@@ -126,7 +124,8 @@ class MoEAdapter(nn.Module):
         if self.skip_connect:
             out = out + x
         out = self.drop_path(out)
-        self.last_routing = dispatch_mask.float().mean(dim=(0, 1)).detach()
+        dims = tuple(range(dispatch_mask.dim() - 1))
+        self.last_routing = dispatch_mask.float().mean(dim=dims).detach()
         ideal = torch.full_like(self.last_routing, 1.0 / self.num_experts)
         self.aux_loss = F.mse_loss(self.last_routing, ideal)
         return out
