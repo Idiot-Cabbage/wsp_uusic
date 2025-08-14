@@ -11,3 +11,6 @@ from .prompt_encoder import PromptEncoder
 from .transformer import TwoWayTransformer
 from .Auto_Prompt_Generator import AutoPromptGenerator
 from .tiny_vit_sam import TinyViT
+from .moe_layers import Router, MoEAdapter
+from .moe_samus import MoESamus
+

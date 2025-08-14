@@ -1,9 +1,10 @@
 import torch
 from torch import nn
-from typing import Any, Tuple
+from typing import Any
 
 from .samus import Samus
 from .moe_layers import MoEAdapter
+from .common import Adapter
 
 
 class MoESamus(nn.Module):
@@ -13,47 +14,30 @@ class MoESamus(nn.Module):
         super().__init__()
         self.samus = samus
         self.moe_modules = []
-        self._convert(moe_expert_num, top_k, router_temp)
+        self._replace_adapters(self.samus.image_encoder, moe_expert_num, top_k, router_temp)
 
-    def _convert(self, num_experts: int, top_k: int, temp: float) -> None:
-        enc = self.samus.image_encoder
-        base_adp = enc.input_Adapter
-        enc.input_Adapter = MoEAdapter(
-            base_adp.D_fc1.in_features,
-            mlp_ratio=base_adp.D_fc1.out_features / base_adp.D_fc1.in_features,
-            num_experts=num_experts,
-            top_k=top_k,
-            temperature=temp,
-            skip_connect=True,
-            drop_path=0.0,
-        )
-        enc.input_Adapter.experts[0].load_state_dict(base_adp.state_dict())
-        with torch.no_grad():
-            enc.input_Adapter.router.linear.weight.data.zero_()
-            enc.input_Adapter.router.linear.bias.data.fill_(-10.0)
-            enc.input_Adapter.router.linear.bias.data[0] = 10.0
-        self.moe_modules.append(enc.input_Adapter)
-        total = len(enc.layers)
-        for i, blk in enumerate(enc.layers):
-            if blk.window_size == 0:
-                ar = blk.MLP_Adapter
-                ratio_a = ar.D_fc1.out_features / ar.D_fc1.in_features
-                moe_adp = MoEAdapter(
-                    ar.D_fc1.in_features,
-                    mlp_ratio=ratio_a,
+    def _replace_adapters(self, module: nn.Module, num_experts: int, top_k: int, temp: float) -> None:
+        for name, child in module.named_children():
+            if isinstance(child, Adapter):
+                ratio = child.D_fc1.out_features / child.D_fc1.in_features
+                moe = MoEAdapter(
+                    child.D_fc1.in_features,
+                    mlp_ratio=ratio,
                     num_experts=num_experts,
                     top_k=top_k,
                     temperature=temp,
-                    skip_connect=False,
-                    drop_path=0.2 if i >= total // 2 else 0.0,
+                    skip_connect=child.skip_connect,
+                    drop_path=0.0,
                 )
-                moe_adp.experts[0].load_state_dict(ar.state_dict())
+                moe.experts[0].load_state_dict(child.state_dict())
                 with torch.no_grad():
-                    moe_adp.router.linear.weight.data.zero_()
-                    moe_adp.router.linear.bias.data.fill_(-10.0)
-                    moe_adp.router.linear.bias.data[0] = 10.0
-                blk.MLP_Adapter = moe_adp
-                self.moe_modules.append(moe_adp)
+                    moe.router.linear.weight.zero_()
+                    moe.router.linear.bias.fill_(-10.0)
+                    moe.router.linear.bias[0] = 10.0
+                setattr(module, name, moe)
+                self.moe_modules.append(moe)
+            else:
+                self._replace_adapters(child, num_experts, top_k, temp)
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         return self.samus(*args, **kwargs)
