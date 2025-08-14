@@ -229,37 +229,40 @@ def omni_train(args, model, snapshot_path):
                     1, 0]).float().to(device=device)
                 nature_prompt = torch.tensor(np.array(sampled_batch['nature_prompt'])).permute([
                     1, 0]).float().to(device=device)
-                (x_seg, _, _) = model((image_batch, position_prompt, task_prompt, type_prompt, nature_prompt))
+                outputs = model((image_batch, position_prompt, task_prompt, type_prompt, nature_prompt))
             else:
-                # print('进入')
-                (x_seg, _, _) = model(image_batch)
+                outputs = model(image_batch)
 
-            # print(torch.isnan(x_seg).any(), torch.isinf(x_seg).any())
-            # loss_ce = seg_ce_loss(x_seg, label_batch[:].long())
-            # loss_dice = seg_dice_loss(x_seg, label_batch, softmax=True)
-            #   loss = 0.4 * loss_ce + 0.6 * loss_dice
+            if isinstance(outputs, tuple) and len(outputs) == 4:
+                x_seg, _, _, aux_loss = outputs
+            else:
+                x_seg, _, _ = outputs
+                aux_loss = model.module.samus_model.get_aux_loss()
+
             loss_ce = seg_ce_loss(x_seg, label_batch[:].float().unsqueeze(1))
             loss_dice = seg_dice_loss(x_seg, label_batch.float().unsqueeze(1), sigmoid=True)
-            loss = 0.2 * loss_ce + 0.8 * loss_dice
+            seg_loss = 0.2 * loss_ce + 0.8 * loss_dice
+            loss = seg_loss + aux_loss
 
-          
+
             lr_ = base_lr * (1.0 - global_iter_num / max_iterations) ** 0.9
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr_
-                
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            
+
 
             seg_iter_num = seg_iter_num + 1
             global_iter_num = global_iter_num + 1
 
             writer.add_scalar('info/lr', lr_, seg_iter_num)
-            writer.add_scalar('info/seg_loss', loss, seg_iter_num)
+            writer.add_scalar('info/seg_loss', seg_loss, seg_iter_num)
+            writer.add_scalar('info/aux_loss', aux_loss, seg_iter_num)
 
-            logging.info('global iteration %d and seg iteration %d : loss : %f' %
-                         (global_iter_num, seg_iter_num, loss.item()))
+            logging.info('global iteration %d and seg iteration %d : loss : %f aux_loss : %f' %
+                         (global_iter_num, seg_iter_num, loss.item(), aux_loss.item()))
             
             
         currentnum = 0
@@ -280,12 +283,18 @@ def omni_train(args, model, snapshot_path):
                     1, 0]).float().to(device=device)
                 nature_prompt = torch.tensor(np.array(sampled_batch['nature_prompt'])).permute([
                     1, 0]).float().to(device=device)
-                (_, x_cls_2, x_cls_4) = model((image_batch, position_prompt, task_prompt, type_prompt, nature_prompt))
+                outputs = model((image_batch, position_prompt, task_prompt, type_prompt, nature_prompt))
             else:
-                (_, x_cls_2, x_cls_4) = model(image_batch)
+                outputs = model(image_batch)
                 #print(model.module.norm_task_cls.bias.grad)
 
-            loss = 0.0           
+            if isinstance(outputs, tuple) and len(outputs) == 4:
+                _, x_cls_2, x_cls_4, aux_loss = outputs
+            else:
+                _, x_cls_2, x_cls_4 = outputs
+                aux_loss = model.module.samus_model.get_aux_loss()
+
+            cls_loss = 0.0
             mask_2_way = (num_classes_batch == 2)
             mask_4_way = (num_classes_batch == 4)
 
@@ -294,26 +303,28 @@ def omni_train(args, model, snapshot_path):
                 outputs_2_way = x_cls_2[mask_2_way]
                 labels_2_way = label_batch[mask_2_way]
                 loss_ce_2 = cls_ce_loss_2way(outputs_2_way, labels_2_way[:].long())
-                loss += loss_ce_2
+                cls_loss += loss_ce_2
 
 
             if mask_4_way.any():
                 outputs_4_way = x_cls_4[mask_4_way]
                 labels_4_way = label_batch[mask_4_way]
                 loss_ce_4 = cls_ce_loss_4way(outputs_4_way, labels_4_way[:].long())
-                loss += loss_ce_4
+                cls_loss += loss_ce_4
+
+            loss = cls_loss + aux_loss
 
             # loss_ce = cls_ce_loss(x_cls, label_batch[:].long())
             # loss = loss_ce
-           
+
             # adjust_lr_by_dataset_before(optimizer,currentnum, base_lr, dataset_name)
-            
-         
-            
-            for param_group in optimizer.param_groups:            
-                    dataset_mult = 1.0                    
+
+
+
+            for param_group in optimizer.param_groups:
+                    dataset_mult = 1.0
                     param_group['lr'] = base_lr * 0.01  * dataset_mult * (1.0 - global_iter_num / max_iterations) ** 0.9
-                    lr_= param_group['lr']          
+                    lr_= param_group['lr']
 
             optimizer.zero_grad()
             loss.backward()
@@ -327,10 +338,11 @@ def omni_train(args, model, snapshot_path):
             global_iter_num = global_iter_num + 1
 
             writer.add_scalar('info/lr', lr_, cls_iter_num)
-            writer.add_scalar('info/cls_loss', loss, cls_iter_num)
+            writer.add_scalar('info/cls_loss', cls_loss, cls_iter_num)
+            writer.add_scalar('info/aux_loss', aux_loss, cls_iter_num)
 
-            logging.info('global iteration %d and cls iteration %d : loss : %f' %
-                         (global_iter_num, cls_iter_num, loss.item()))
+            logging.info('global iteration %d and cls iteration %d : loss : %f aux_loss : %f' %
+                         (global_iter_num, cls_iter_num, loss.item(), aux_loss.item()))
             
         dist.barrier()
         # if gpu_id == 0:
