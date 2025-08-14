@@ -772,7 +772,9 @@ class TinyViT(nn.Module):
     def forward_features(self, x):
         # x: (N, C, H, W)
         x = self.patch_embed(x) # 4 3 224 224
+        x = x.permute(0, 2, 3, 1).contiguous()
         x = self.input_Adapter(x)
+        x = x.permute(0, 3, 1, 2).contiguous()
 
         x = self.layers[0](x)
         start_i = 1
